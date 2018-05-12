@@ -9,7 +9,7 @@ def main():
 		destinationAirportCode = 'CUN',
 		departureDate = '2018-10-07',
 		returnDate = '2018-10-14',
-		tripType = 'oneway'
+		tripType = 'roundtrip'
 	)
 	
 if __name__ == "__main__":

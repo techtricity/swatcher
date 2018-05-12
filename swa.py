@@ -42,6 +42,28 @@ def validateTimeOfDay(timeOfDay):
 def validatePassengersCount(passengersCount):
 	return
 
+def scrapeFlights(flight):
+
+	flightDetails = {}
+	flightDetails['stops'] = 0	
+	flightDetails['origination'] = flight.find_element_by_css_selector("div[type='origination'").text
+		# Text here can contain "Next Day", so just take time portion
+	flightDetails['destination'] = flight.find_element_by_css_selector("div[type='destination'").text.split()[0]
+
+	durationList = flight.find_element_by_class_name("flight-stops--duration").text.split("Duration",1)[1].split()
+	flightDetails['duration'] = durationList[0].split("h")[0] + ":" + durationList[1].split("m")[0]
+
+	if(len(durationList) > 2):
+		flightDetails['stops'] = int(durationList[2])
+
+		# Right now, only care about "Wanna Get Away" fares. Why would anybody scrape for "Business Select" or "Anytime" fares???
+		# This you have to be careful with, since after the fare, there can be text like "X left"
+		# SWA identifies these by color yellow - this is why I call it out by the class name "fare-button_primary-yellow"
+	flightDetails['fare'] = int(flight.find_element_by_class_name("fare-button_primary-yellow").text.split("$")[1].split()[0])
+
+	#print "departure: " + originationTime + " arrival: " + destinationTime + " duration: " + duration + " stops: " + str(stops) + " fare: " + str(fare)
+
+	return flightDetails
 
 def scrape(
 	originationAirportCode, # 3 letter airport code (eg: MDW - for Midway, Chicago, Illinois)
@@ -102,7 +124,7 @@ def scrape(
 		open("dump.html", "w").write(u''.join((driver.page_source)).encode('utf-8').strip())
 		quit()
 
-	print "ID: '" + element.get_attribute("id") + "' CLASS: '" + element.get_attribute("class") + "'"
+#	print "ID: '" + element.get_attribute("id") + "' CLASS: '" + element.get_attribute("class") + "'"
 	
 	if element.get_attribute("class").find("page-error--message") >= 0:
 		print element.text
@@ -115,20 +137,18 @@ def scrape(
 		if (len(priceMatrixes) != 2):
 			print "Only one set of prices returned for round-trip travel"
 			quit()
+
 		outboundFlights = priceMatrixes[0].find_elements_by_class_name("air-booking-select-detail")
+		for element in outboundFlights:
+				print scrapeFlights(element)
+
 		returnFlights = priceMatrixes[1].find_elements_by_class_name("air-booking-select-detail")
-		print "Outbound: " + str(len(outboundFlights)) + " Return: " + str(len(returnFlights))
+		for element in returnFlights:
+				print scrapeFlights(element)
+
 	else:
 		outboundFlights = priceMatrixes[0].find_elements_by_class_name("air-booking-select-detail")
-		print "Outbound: " + str(len(outboundFlights))
+		for element in outboundFlights:
+			print scrapeFlights(element)
 
 	open("dump.html", "w").write(u''.join((driver.page_source)).encode('utf-8').strip())
-	print "Successful"
-
-
-	#outbound_fares = driver.find_elements_by_tag_name("ul")[2]
-	#outbound_prices = outbound_fares.find_elements_by_class_name("currency_dollars")
-
-	#print outbound_fares
-	#print outbound_prices
-
