@@ -1,4 +1,7 @@
 *.pyc
 .*.swp
-dump.html
-audit.html
+*.html
+
+# Ignore all .ini files, other than the sample file
+*.ini
+!swatcher.ini
