@@ -1,6 +1,7 @@
 import time
 import requests
 import collections
+import re
 
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
@@ -10,10 +11,11 @@ from selenium.common.exceptions import TimeoutException
 from selenium.common.exceptions import NoSuchElementException
 
 URL = "https://www.southwest.com/air/booking/select.html"
+URL_TIMEOUT = 20
 
 # Preload a dictionary. These are values that are supported by the SWA REST API, but currently unconfigurable
 # Some of these can be omitted, but for completeness, I'm including them with default values.
-payload = {
+defaultOptions = {
 	'returnAirportCode':'',
 	'seniorPassengersCount':'0',
 	'fareType':'USD',
@@ -25,25 +27,71 @@ payload = {
 	'leapfrogRequest':'true'
 }
 
+class validationError(Exception):
+	def __init__(self, message):
+		self.message = message
 
 def validateAirportCode(airportCode):
-	return
 
-def validateDate(date):
-	return
+	if(not airportCode.isalpha()):
+		raise validationError("validateAirportCode: '" + airportCode + "' contains non-alphabetic characters")
+
+	if(len(airportCode) != 3):
+		raise validationError("validateAirportCode: '" + airportCode + "' can only be 3 characters")
+
+	return airportCode.upper() # No necessary, but prefer to have in upper case
 
 def validateTripType(tripType):
-	return
+
+	if(("roundtrip" not in tripType) and ("oneway" not in tripType)):
+		raise validationError("validateTripType: '" + tripType + "' not valid, must be 'roundtrip' or 'oneway'")
+
+	return tripType
+
+def validateDate(date):
+
+	pattern = re.compile("^20[0-9][0-9]-[0-1][0-9]-[0-3][0-9]$")
+	if(not pattern.match(date)):
+		raise validationError("validateDate: '" + date + "' not in the format YYYY-MM-DD")
+
+	return date
 
 def validateTimeOfDay(timeOfDay):
-	return
+	validTimes = ['ALL_DAY', 'BEFORE_NOON', 'NOON_TO_SIX', 'AFTER_SIX']
+
+	if(any(x in timeOfDay for x in validTimes)):
+		return timeOfDay
+	elif(timeOfDay == "anytime"):
+		return "ALL_DAY"
+	elif(timeOfDay == "morning"):
+		return "BEFORE_NOON"
+	elif(timeOfDay == "afternoon"):
+		return "NOON_TO_SIX"
+	elif(timeOfDay == "evening"):
+		return "AFTER_SIX"
+	else:
+		raise validationError("validateTimeOfDay: '" + timeOfDay + "' invalid")
 
 def validatePassengersCount(passengersCount):
-	return
+	if( 1 <= passengersCount <= 8):
+		return passengersCount
+	else:
+		raise validationError("validatePassengersCount: '" + passengersCount + "' must be 1 through 8")
+
+def scrapeFare(element, className):
+
+	fare = element.find_element_by_class_name(className).text
+	if(("Unavailable" in fare) or ("Sold out" in fare)):
+		return None
+	else:
+		return int(fare.split("$")[1].split()[0])
 
 def scrapeFlights(flight):
 
 	flightDetails = {}
+
+	flightDetails['flight'] = "".join(flight.find_element_by_class_name("flight-numbers--flight-number").text.split("#")[1].split())
+
 	flightDetails['stops'] = 0	
 	flightDetails['origination'] = flight.find_element_by_css_selector("div[type='origination'").text
 		# Text here can contain "Next Day", so just take time portion
@@ -58,12 +106,12 @@ def scrapeFlights(flight):
 	if(len(durationList) > 2):
 		flightDetails['stops'] = int(durationList[2])
 
-		# Right now, only care about "Wanna Get Away" fares. Why would anybody scrape for "Business Select" or "Anytime" fares???
-		# This you have to be careful with, since after the fare, there can be text like "X left"
-		# SWA identifies these by color yellow - this is why I call it out by the class name "fare-button_primary-yellow"
-	flightDetails['fare'] = int(flight.find_element_by_class_name("fare-button_primary-yellow").text.split("$")[1].split()[0])
-
-	#print "departure: " + originationTime + " arrival: " + destinationTime + " duration: " + duration + " stops: " + str(stops) + " fare: " + str(fare)
+		# fare-button_primary-yellow == wannaGetAway
+		# fare-button_secondary-light-blue == anytime
+		# fare-button_primary-blue == businessSelect
+	flightDetails['fareWannaGetAway'] = scrapeFare(flight, "fare-button_primary-yellow")
+	flightDetails['fareAnytime'] = scrapeFare(flight, "fare-button_secondary-light-blue")
+	flightDetails['fareBusinessSelect'] = scrapeFare(flight, "fare-button_primary-blue")
 
 	return flightDetails
 
@@ -78,28 +126,21 @@ def scrape(
 	adultPassengersCount = 1 # Can be a value of between 1 and 8
 	):
 
-		# Validate all the parameters to ensure nothing is blatently erroneous
-	validateAirportCode(originationAirportCode)
-	validateAirportCode(destinationAirportCode)
-	validateTripType(tripType)
-	validateDate(departureDate)
-	validateTimeOfDay(departureTimeOfDay)
-	if (tripType == 'roundtrip'):
-		validateDate(returnDate)
-		validateTimeOfDay(returnTimeOfDay)
-	validatePassengersCount(adultPassengersCount)
+	payload = defaultOptions
 
-	payload['originationAirportCode'] = originationAirportCode
-	payload['destinationAirportCode'] = destinationAirportCode
-	payload['departureDate'] = departureDate
-	payload['departureTimeOfDay'] = departureTimeOfDay
+		# Validate the parameters to ensure nothing is blatently erroneous then load into map
+	payload['originationAirportCode'] = validateAirportCode(originationAirportCode)
+	payload['destinationAirportCode'] = validateAirportCode(destinationAirportCode)
+	payload['tripType'] = validateTripType(tripType)
+	payload['departureDate'] = validateDate(departureDate)
+	payload['departureTimeOfDay'] = validateTimeOfDay(departureTimeOfDay)
+	payload['adultPassengersCount'] = validatePassengersCount(adultPassengersCount)
+
 	if (tripType == 'roundtrip'):
-		payload['returnDate'] = returnDate
-		payload['returnTimeOfDay'] = returnTimeOfDay
+		payload['returnDate'] = validateDate(returnDate)
+		payload['returnTimeOfDay'] = validateTimeOfDay(returnTimeOfDay)
 	else:
 		payload['returnDate'] = '' # SWA REST requires presence of this parameter, even on a 'oneway'
-	payload['tripType'] = tripType
-	payload['adultPassengersCount'] = adultPassengersCount
 
 	query =  '&'.join(['%s=%s' % (key, value) for (key, value) in payload.items()])
 
@@ -113,21 +154,19 @@ def scrape(
 	driver.get(fullUrl)
 
 	try:
-		element = WebDriverWait(driver, 20).until( EC.element_to_be_clickable((By.CSS_SELECTOR,".search-results--container, .page-error--message")))
+		element = WebDriverWait(driver, URL_TIMEOUT).until( EC.element_to_be_clickable((By.CSS_SELECTOR,".search-results--container, .page-error--message")))
+		#time.sleep(2) # This is done as sometimes return flight info isn't there after wait
 
 	except TimeoutException:
-		print "Took Too Long!!!"
-		open("dump.html", "w").write(u''.join((driver.page_source)).encode('utf-8').strip())
-		quit()
+		raise Exception("SWA Scrape: ")
 	except Exception as ex:
 		template = "An exception of type {0} occurred. Arguments:\n{1!r}"
 		message = template.format(type(ex).__name__, ex.args)
 		print message
-		open("dump.html", "w").write(u''.join((driver.page_source)).encode('utf-8').strip())
 		quit()
+	finally:
+		open("dump.html", "w").write(u''.join((driver.page_source)).encode('utf-8').strip())
 
-#	print "ID: '" + element.get_attribute("id") + "' CLASS: '" + element.get_attribute("class") + "'"
-	
 	if element.get_attribute("class").find("page-error--message") >= 0:
 		print element.text
 		quit()
@@ -135,22 +174,26 @@ def scrape(
 	# If here, we should have results, so  parse out...
 	priceMatrixes = element.find_elements_by_class_name("air-booking-select-price-matrix")
 
+	flights = []
+
 	if (payload['tripType'] == 'roundtrip'):
 		if (len(priceMatrixes) != 2):
-			print "Only one set of prices returned for round-trip travel"
-			quit()
+			raise Exception("Only one set of prices returned for round-trip travel")
 
-		outboundFlights = priceMatrixes[0].find_elements_by_class_name("air-booking-select-detail")
-		for element in outboundFlights:
-				print scrapeFlights(element)
+		outboundFlights = []
+		for element in  priceMatrixes[0].find_elements_by_class_name("air-booking-select-detail"):
+			outboundFlights.append(scrapeFlights(element))
+		flights.append(outboundFlights)	
 
-		returnFlights = priceMatrixes[1].find_elements_by_class_name("air-booking-select-detail")
-		for element in returnFlights:
-				print scrapeFlights(element)
+		returnFlights = []
+		for element in  priceMatrixes[1].find_elements_by_class_name("air-booking-select-detail"):
+			returnFlights.append(scrapeFlights(element))
+		flights.append(returnFlights)
 
 	else:
-		outboundFlights = priceMatrixes[0].find_elements_by_class_name("air-booking-select-detail")
-		for element in outboundFlights:
-			print scrapeFlights(element)
+		outboundFlights = []
+		for element in  priceMatrixes[0].find_elements_by_class_name("air-booking-select-detail"):
+			outboundFlights.append(scrapeFlights(element))
+		flights.append(outboundFlights)
 
-	open("dump.html", "w").write(u''.join((driver.page_source)).encode('utf-8').strip())
+	return flights

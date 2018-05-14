@@ -1,14 +1,46 @@
 #!/usr/bin/python
 
+import argparse
+
 import swa
+import configuration
+
+
+DEFAULT_CONFIGURATION_FILE = "swatcher.ini"
+
+def parseArguments():
+
+	parser = argparse.ArgumentParser(description = "swatcher.py: Utility to monitor SWA for fare price changes")
+
+	parser.add_argument('-f', '--file',
+		dest = 'configurationFile',
+		help = "Configuration file to use. If unspecified, will be '" + DEFAULT_CONFIGURATION_FILE + "'",
+		default = DEFAULT_CONFIGURATION_FILE)
+
+	args = parser.parse_args()
+
+	return args
+
 
 def main():
 
-	swa.scrape(
+	args = parseArguments();
+
+	print("Parsing configuration file '" + args.configurationFile +"'")
+
+	try:
+		config = configuration.configuration(args.configurationFile)
+	except Exception as e:
+		print("Error in processing configuration file: " + str(e))
+		quit()
+
+	print(str(config.__dict__))
+
+	print swa.scrape(
 		originationAirportCode = 'MDW',
-		destinationAirportCode = 'CUN',
-		departureDate = '2018-10-07',
-		returnDate = '2018-10-14',
+		destinationAirportCode = 'DEN',
+		departureDate = '2018-05-15',
+		returnDate = '2018-05-17',
 		tripType = 'roundtrip'
 	)
 	
