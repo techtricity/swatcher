@@ -27,24 +27,29 @@ defaultOptions = {
 	'leapfrogRequest':'true'
 }
 
-class validationError(Exception):
-	def __init__(self, message):
-		self.message = message
+class scrapeValidationError(Exception):
+	pass
+
+class scrapeTimeoutError(Exception):
+	pass
+
+class scrapeGeneralError(Exception):
+	pass
 
 def validateAirportCode(airportCode):
 
 	if(not airportCode.isalpha()):
-		raise validationError("validateAirportCode: '" + airportCode + "' contains non-alphabetic characters")
+		raise scrapeValidationError("validateAirportCode: '" + airportCode + "' contains non-alphabetic characters")
 
 	if(len(airportCode) != 3):
-		raise validationError("validateAirportCode: '" + airportCode + "' can only be 3 characters")
+		raise scrapeValidationError("validateAirportCode: '" + airportCode + "' can only be 3 characters")
 
 	return airportCode.upper() # No necessary, but prefer to have in upper case
 
 def validateTripType(tripType):
 
-	if(("roundtrip" not in tripType) and ("oneway" not in tripType)):
-		raise validationError("validateTripType: '" + tripType + "' not valid, must be 'roundtrip' or 'oneway'")
+	if((tripType != "roundtrip") and (tripType != "oneway")):
+		raise scrapeValidationError("validateTripType: '" + tripType + "' not valid, must be 'roundtrip' or 'oneway'")
 
 	return tripType
 
@@ -52,7 +57,7 @@ def validateDate(date):
 
 	pattern = re.compile("^20[0-9][0-9]-[0-1][0-9]-[0-3][0-9]$")
 	if(not pattern.match(date)):
-		raise validationError("validateDate: '" + date + "' not in the format YYYY-MM-DD")
+		raise scrapeValidationError("validateDate: '" + date + "' not in the format YYYY-MM-DD")
 
 	return date
 
@@ -70,13 +75,13 @@ def validateTimeOfDay(timeOfDay):
 	elif(timeOfDay == "evening"):
 		return "AFTER_SIX"
 	else:
-		raise validationError("validateTimeOfDay: '" + timeOfDay + "' invalid")
+		raise scrapeValidationError("validateTimeOfDay: '" + timeOfDay + "' invalid")
 
 def validatePassengersCount(passengersCount):
 	if( 1 <= passengersCount <= 8):
 		return passengersCount
 	else:
-		raise validationError("validatePassengersCount: '" + passengersCount + "' must be 1 through 8")
+		raise scrapeValidationError("validatePassengersCount: '" + passengersCount + "' must be 1 through 8")
 
 def scrapeFare(element, className):
 
@@ -155,21 +160,15 @@ def scrape(
 
 	try:
 		element = WebDriverWait(driver, URL_TIMEOUT).until( EC.element_to_be_clickable((By.CSS_SELECTOR,".search-results--container, .page-error--message")))
-		#time.sleep(2) # This is done as sometimes return flight info isn't there after wait
 
 	except TimeoutException:
-		raise Exception("SWA Scrape: ")
+		raise scrapeTimeoutError("scrape: Timeout occurred after " + URL_TIMEOUT + " seconds waiting for web result")
 	except Exception as ex:
 		template = "An exception of type {0} occurred. Arguments:\n{1!r}"
 		message = template.format(type(ex).__name__, ex.args)
-		print message
-		quit()
+		raise scrapeGeneralError("scrape: General exception occurred - " + message)
 	finally:
 		open("dump.html", "w").write(u''.join((driver.page_source)).encode('utf-8').strip())
-
-	if element.get_attribute("class").find("page-error--message") >= 0:
-		print element.text
-		quit()
 
 	# If here, we should have results, so  parse out...
 	priceMatrixes = element.find_elements_by_class_name("air-booking-select-price-matrix")

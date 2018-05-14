@@ -36,13 +36,18 @@ def main():
 
 	print(str(config.__dict__))
 
-	print swa.scrape(
-		originationAirportCode = 'MDW',
-		destinationAirportCode = 'DEN',
-		departureDate = '2018-05-15',
-		returnDate = '2018-05-17',
-		tripType = 'roundtrip'
-	)
+	try:
+		print swa.scrape(
+			originationAirportCode = 'MDW',
+			destinationAirportCode = 'DEN',
+			departureDate = '2018-05-15',
+			returnDate = '2018-05-17',
+			tripType = 'roundtrip'
+		)
+	except swa.scrapeValidationError as e:
+		print(e)
+		print("\nValidation errors are not retryable, so swatcher is exiting")
+		quit()
 	
 if __name__ == "__main__":
 	main()

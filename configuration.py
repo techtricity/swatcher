@@ -7,7 +7,6 @@ class configuration:
 		cp = ConfigParser.SafeConfigParser()
 		cp.read(configurationFile)
 
-
 		if(cp.has_section('global') == False):
 			raise Exception("Configuration file does not contain 'global' section'")
 
@@ -44,3 +43,15 @@ class configuration:
 				self.smtpSender = cp.get('global', 'smtpSender')
 			else:
 				raise Exception("Configuration file missing required 'smtpSender' option")
+
+			self.smtpUseAuth = False			
+			if(cp.has_option('global', 'smtpUsername')):
+				self.smtpUsername = cp.get('global', 'smtpUsername')
+				self.smtpUseAuth = True
+				if(cp.has_option('global', 'smtpPassword')):
+					self.smtpPassword = cp.get('global', 'smtpPassword')
+				else:
+					raise Exception("Configuration file has smtpUsername specified, but not smtpPassword")
+
+			for section in cp.sections():
+				print "Section Found: " + section
