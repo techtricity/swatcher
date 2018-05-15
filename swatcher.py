@@ -34,20 +34,24 @@ def main():
 		print("Error in processing configuration file: " + str(e))
 		quit()
 
-	print(str(config.__dict__))
 
-	try:
-		print swa.scrape(
-			originationAirportCode = 'MDW',
-			destinationAirportCode = 'DEN',
-			departureDate = '2018-05-15',
-			returnDate = '2018-05-17',
-			tripType = 'roundtrip'
-		)
-	except swa.scrapeValidationError as e:
-		print(e)
-		print("\nValidation errors are not retryable, so swatcher is exiting")
-		quit()
-	
+	for trip in config.trips:
+		try:
+			swa.scrape(
+				originationAirportCode = trip['originationAirportCode'],
+				destinationAirportCode = trip['destinationAirportCode'],
+				departureDate = trip['departureDate'],
+				departureTimeOfDay = trip['departureTimeOfDay'],
+				returnDate = trip['returnDate'],
+				returnTimeOfDay = trip['returnTimeOfDay'],
+				tripType = trip['tripType'],
+				adultPassengersCount = trip['adultPassengersCount'],
+				debug = config.debug
+			)
+		except swa.scrapeValidationError as e:
+			print(e)
+			print("\nValidation errors are not retryable, so swatcher is exiting")
+			quit()
+		
 if __name__ == "__main__":
 	main()

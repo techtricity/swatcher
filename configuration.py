@@ -1,4 +1,5 @@
 import ConfigParser
+import re
 
 class configuration:
 
@@ -15,6 +16,10 @@ class configuration:
 		else:
 			self.pollInterval = 30
 
+		if(cp.has_option('global', 'debug')):
+			self.debug = cp.getboolean('global', 'debug')
+		else:
+			self.debug = false
 
 		if(cp.has_option('global', 'notificationMethod')):
 			self.notificationMethod = cp.get('global', 'notificationMethod')
@@ -53,5 +58,76 @@ class configuration:
 				else:
 					raise Exception("Configuration file has smtpUsername specified, but not smtpPassword")
 
+			self.trips = []
+			pattern = re.compile("^trip-[0-9]+$")
 			for section in cp.sections():
-				print "Section Found: " + section
+				if(not pattern.match(section)):
+					continue
+
+				trip = {}			
+				if(cp.has_option(section, 'description')):
+					trip['description'] = cp.get(section, 'description')
+
+				if(cp.has_option(section, 'originationAirportCode')):
+					trip['originationAirportCode'] = cp.get(section, 'originationAirportCode')
+				else:
+					raise Exception("For section '" + section + "', required option originationAirportCode is missing")
+
+				if(cp.has_option(section, 'destinationAirportCode')):
+					trip['destinationAirportCode'] = cp.get(section, 'destinationAirportCode')
+				else:
+					raise Exception("For section '" + section + "', required option destinationAirportCode is missing")
+
+				if(cp.has_option(section, 'tripType')):
+					trip['tripType'] = cp.get(section, 'tripType')
+				else:
+					raise Exception("For section '" + section + "', required option tripType is missing")
+
+				if(cp.has_option(section, 'departureDate')):
+					trip['departureDate'] = cp.get(section, 'departureDate')
+				else:
+					raise Exception("For section '" + section + "', required option departureDate is missing")
+
+				if(cp.has_option(section, 'departureTimeOfDay')):
+					trip['departureTimeOfDay'] = cp.get(section, 'departureTimeOfDay')
+				else:
+					trip['departureTimeOfDay'] = 'anytime'
+					
+
+				if(cp.has_option(section, 'returnDate')):
+					trip['returnDate'] = cp.get(section, 'returnDate')
+				else:
+					trip['returnDate'] = ''
+
+				if(cp.has_option(section, 'returnTimeOfDay')):
+					trip['returnTimeOfDay'] = cp.get(section, 'returnTimeOfDay')
+				else:
+					trip['returnTimeOfDay'] = 'anytime'
+					
+
+				if(cp.has_option(section, 'adultPassengersCount')):
+					trip['adultPassengersCount'] = cp.getint(section, 'adultPassengersCount')
+				else:
+					raise Exception("For section '" + section + "', required option adultPassengersCount is missing")
+
+				if(cp.has_option(section, 'maxStops')):
+					trip['maxStops'] = cp.getint(section, 'maxStops')
+				else:
+					trip['maxStops'] = 8 # Just a large value...
+
+				if(cp.has_option(section, 'price')):
+					trip['price'] = cp.getint(section, 'price')
+				else:
+					trip['price'] = 0
+
+				if(cp.has_option(section, 'maxDuration')):
+					trip['maxDuration'] = cp.getfloat(section, 'maxDuration')
+				else:
+					trip['maxDuration'] = 0.0
+
+				self.trips.append(trip)
+
+			if(len(self.trips) == 0):
+				raise Exception("Configuration file must have at least one [trip-X] section")
+
+			return

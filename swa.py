@@ -114,7 +114,7 @@ def scrapeFlights(flight):
 		# fare-button_primary-yellow == wannaGetAway
 		# fare-button_secondary-light-blue == anytime
 		# fare-button_primary-blue == businessSelect
-	flightDetails['fareWannaGetAway'] = scrapeFare(flight, "fare-button_primary-yellow")
+	flightDetails['fare'] = scrapeFare(flight, "fare-button_primary-yellow")
 	flightDetails['fareAnytime'] = scrapeFare(flight, "fare-button_secondary-light-blue")
 	flightDetails['fareBusinessSelect'] = scrapeFare(flight, "fare-button_primary-blue")
 
@@ -128,7 +128,8 @@ def scrape(
 	tripType = 'roundtrip', # Can be either 'roundtrip' or 'oneway'
 	departureTimeOfDay = 'ALL_DAY', # Can be either 'ALL_DAY', 'BEFORE_NOON', 'NOON_TO_SIX', or 'AFTER_SIX' (CASE SENSITIVE)
 	returnTimeOfDay = 'ALL_DAY', # Can be either 'ALL_DAY', 'BEFORE_NOON', 'NOON_TO_SIX', or 'AFTER_SIX' (CASE SENSITIVE) 
-	adultPassengersCount = 1 # Can be a value of between 1 and 8
+	adultPassengersCount = 1, # Can be a value of between 1 and 8
+	debug = False
 	):
 
 	payload = defaultOptions
@@ -168,7 +169,8 @@ def scrape(
 		message = template.format(type(ex).__name__, ex.args)
 		raise scrapeGeneralError("scrape: General exception occurred - " + message)
 	finally:
-		open("dump.html", "w").write(u''.join((driver.page_source)).encode('utf-8').strip())
+		if(debug):
+			open("dump.html", "w").write(u''.join((driver.page_source)).encode('utf-8').strip())
 
 	# If here, we should have results, so  parse out...
 	priceMatrixes = element.find_elements_by_class_name("air-booking-select-price-matrix")
