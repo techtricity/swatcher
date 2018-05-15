@@ -114,7 +114,7 @@ def scrapeFlights(flight):
 		# fare-button_primary-yellow == wannaGetAway
 		# fare-button_secondary-light-blue == anytime
 		# fare-button_primary-blue == businessSelect
-	flightDetails['fare'] = scrapeFare(flight, "fare-button_primary-yellow")
+	flightDetails['fareWannaGetAway'] = scrapeFare(flight, "fare-button_primary-yellow")
 	flightDetails['fareAnytime'] = scrapeFare(flight, "fare-button_secondary-light-blue")
 	flightDetails['fareBusinessSelect'] = scrapeFare(flight, "fare-button_primary-blue")
 
