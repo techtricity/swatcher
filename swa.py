@@ -121,6 +121,7 @@ def scrapeFlights(flight):
 	return flightDetails
 
 def scrape(
+	browser,
 	originationAirportCode, # 3 letter airport code (eg: MDW - for Midway, Chicago, Illinois)
 	destinationAirportCode, # 3 letter airport code (eg: MCO - for Orlando, Florida) 
 	departureDate, # Flight departure date in YYYY-MM-DD format
@@ -152,18 +153,23 @@ def scrape(
 
 	fullUrl = URL + '?' + query
 
-	options = webdriver.ChromeOptions()
-	options.binary_location = '/usr/bin/google-chrome'
-	options.add_argument('headless')
-	driver = webdriver.Chrome(chrome_options=options)
+	if(browser.type == 'chrome'):
+		options = webdriver.ChromeOptions()
+		options.binary_location = browser.binaryLocation
+		options.add_argument('headless')
+		driver = webdriver.Chrome(chrome_options=options)
+	else:
+		raise scrapeGeneralError("scrape: Unsupported web browser '" + browser.type + "' specified")
 
 	driver.get(fullUrl)
 
+	waitCSS = "#air-booking-product-1, .page-error--message" if tripType == 'roundtrip' else "#air-booking-product-0, .page-error--message"
+
 	try:
-		element = WebDriverWait(driver, URL_TIMEOUT).until( EC.element_to_be_clickable((By.CSS_SELECTOR,".search-results--container, .page-error--message")))
+		element = WebDriverWait(driver, URL_TIMEOUT).until( EC.element_to_be_clickable((By.CSS_SELECTOR, waitCSS)))
 
 	except TimeoutException:
-		raise scrapeTimeoutError("scrape: Timeout occurred after " + URL_TIMEOUT + " seconds waiting for web result")
+		raise scrapeTimeoutError("scrape: Timeout occurred after " + str(URL_TIMEOUT) + " seconds waiting for web result")
 	except Exception as ex:
 		template = "An exception of type {0} occurred. Arguments:\n{1!r}"
 		message = template.format(type(ex).__name__, ex.args)
@@ -173,7 +179,7 @@ def scrape(
 			open("dump.html", "w").write(u''.join((driver.page_source)).encode('utf-8').strip())
 
 	# If here, we should have results, so  parse out...
-	priceMatrixes = element.find_elements_by_class_name("air-booking-select-price-matrix")
+	priceMatrixes = driver.find_elements_by_class_name("air-booking-select-price-matrix")
 
 	flights = []
 
