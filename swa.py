@@ -104,7 +104,7 @@ def scrapeFlights(flight):
 
 	durationList = flight.find_element_by_class_name("flight-stops--duration").text.split("Duration",1)[1].split()
 
-		# For flight duration, just round to 2 decimal places - hat should be more than enough
+		# For flight duration, just round to 2 decimal places - that should be more than enough
 	flightDetails['duration'] = round(float(durationList[0].split("h")[0]) +  ((float(durationList[1].split("m")[0])/60.0) + .001), 2)
 
 		# For flights which are non-stop, SWA doesn't display data after the duration
