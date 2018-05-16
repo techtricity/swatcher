@@ -181,26 +181,26 @@ def scrape(
 	# If here, we should have results, so  parse out...
 	priceMatrixes = driver.find_elements_by_class_name("air-booking-select-price-matrix")
 
-	flights = []
+	segments = []
 
 	if (payload['tripType'] == 'roundtrip'):
 		if (len(priceMatrixes) != 2):
 			raise Exception("Only one set of prices returned for round-trip travel")
 
-		outboundFlights = []
+		outboundSegment = []
 		for element in  priceMatrixes[0].find_elements_by_class_name("air-booking-select-detail"):
-			outboundFlights.append(scrapeFlights(element))
-		flights.append(outboundFlights)	
+			outboundSegment.append(scrapeFlights(element))
+		segments.append(outboundSegment)	
 
-		returnFlights = []
+		returnSegment = []
 		for element in  priceMatrixes[1].find_elements_by_class_name("air-booking-select-detail"):
-			returnFlights.append(scrapeFlights(element))
-		flights.append(returnFlights)
+			returnSegment.append(scrapeFlights(element))
+		segments.append(returnSegment)
 
 	else:
-		outboundFlights = []
+		outboundSegment = []
 		for element in  priceMatrixes[0].find_elements_by_class_name("air-booking-select-detail"):
-			outboundFlights.append(scrapeFlights(element))
-		flights.append(outboundFlights)
+			outboundSegment.append(scrapeFlights(element))
+		segments.append(outboundSegment)
 
-	return flights
+	return segments

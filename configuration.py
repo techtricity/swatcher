@@ -36,6 +36,33 @@ class configurationSmtp(object):
 			else:
 				raise Exception("Configuration for SMTP has username specified, but not password")
 
+class configurationTwilio(object):
+
+	def __init__(self, cp):
+		
+		self.type = 'twilio'
+
+		if(cp.has_option('twilio', 'accountSid')):
+			self.accountSid = cp.get('twilio', 'accountSid')
+		else:
+			raise Exception("Configuration for Twilio missing required 'accountSid' option")
+		
+		if(cp.has_option('twilio', 'authToken')):
+			self.authToken = cp.get('twilio', 'authToken')
+		else:
+			raise Exception("Configuration for Twilio missing required 'authToken' option")
+
+		if(cp.has_option('twilio', 'to')):
+			self.to = cp.get('twilio', 'to')
+		else:
+			raise Exception("Configuration for Twilio missing required 'to' option")
+
+		if(cp.has_option('twilio', 'from')):
+			self.from = cp.get('twilio', 'from')
+		else:
+			raise Exception("Configuration for Twilio missing required 'from' option")
+
+
 class configurationBrowserChrome(object):
 
 	def __init__(self, cp):
@@ -86,8 +113,7 @@ class configurationTrip(object):
 		self.returnDate = cp.get(section, 'returnDate') if cp.has_option(section,'returnDate') else ''
 		self.returnTimeOfDay = cp.get(section, 'returnTimeOfDay') if cp.has_option(section,'returnTimeOfDay') else 'anytime'
 
-		self.departureFlight = cp.get(section, 'departureFlight') if cp.has_option(section,'departureFlight') else ''
-		self.returnFlight = cp.get(section, 'returnFlight') if cp.has_option(section,'returnFlight') else ''
+		self.specificFlights = cp.get(section, 'specificFlights') if cp.has_option(section,'specificFlights') else ''
 
 		if(cp.has_option(section, 'adultPassengersCount')):
 			self.adultPassengersCount = cp.getint(section, 'adultPassengersCount')
@@ -95,7 +121,7 @@ class configurationTrip(object):
 			raise Exception("For section '" + section + "', required option adultPassengersCount is missing")
 
 		self.maxStops = cp.getint(section, 'maxStops') if cp.has_option(section,'maxStops') else 8 # Just a large value...
-		self.price = cp.getint(section, 'price') if cp.has_option(section,'price') else 0
+		self.maxPrice = cp.getint(section, 'maxPrice') if cp.has_option(section,'maxPrice') else 0
 
 		self.maxDuration = cp.getfloat(section, 'maxDuration') if cp.has_option(section,'maxDuration') else 0.0
 
@@ -128,6 +154,8 @@ class configuration(object):
 
 		if(self.notificationMethod == 'smtp'):
 			self.notification = configurationSmtp(cp)
+		if(self.notificationMethod == 'twilio'):
+			self.notification = configurationTwilio(cp)
 		else:
 			raise Exception("Unrecognized notificationMethod '" + self.notificationMethod + "'")
 		

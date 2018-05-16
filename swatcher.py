@@ -2,6 +2,7 @@
 
 import argparse
 import time
+import smtplib
 from datetime import datetime
 
 import swa
@@ -22,12 +23,10 @@ class swatcher(object):
 	def __init__(self):
 		self.state = []
 	
-	@staticmethod
-	def now():
+	def now(self):
 		return datetime.now().strftime('%Y-%m-%d %H:%M:%S') 
 
-	@staticmethod
-	def parseArguments():
+	def parseArguments(self):
 
 		parser = argparse.ArgumentParser(description = "swatcher.py: Utility to monitor SWA for fare price changes")
 
@@ -40,36 +39,60 @@ class swatcher(object):
 
 		return args
 
-	def sendNotification(notification, message):
+	def sendNotification(self, notification, message):
 
-		print(self.now() + ": SENDING NOTIFICATION!!! '" + message + "'");
+		print(self.now() + ": SENDING NOTIFICATION!!! '" + message + "'")
 
-	def findLowestiFareSpecificFlight(trip, flights, departure):
+		if(notification.type == 'smtp'):
+			try:
+				server = smtplib.SMTP(notification.host, notification.port)
 
-		if(departure and not trip.departureFlight):
-			specificFlight = trip.departureFlight
-		elif(not departure and not trip.returnFlight):
-			specificFlight = trip.returnFlight
-		else: 
-			specificFlight = ''
+				if(notification.useAuth):
+					server.login(notification.username, notification.password)
 
-		if(specificFlight):
-			for flight in flights:
-				if(flight['flight'] == specificFlight):
-					return flight['fare']
-			return 0
-		return -1
+				mailMessage = """From: %s\nTo: %s\nX-Priority: 2\nSubject: %s\n\n """ % (notification.sender, notification.recipient, message)
+				print mailMessage
+				server.sendmail(notification.sender, notification.recipient, mailMessage)
+				server.quit()
+
+			except Exception as e: 
+				print(self.now() + ": UNABLE TO SEND NOTIFICATION DUE TO ERROR - " + str(e))
+			return
+ 	
+ 
+	def findLowestFareInSegment(self,trip, segment):
+
+		lowestCurrentFare = None
+
+		specificFlights = []
+		if(trip.specificFlights):
+			specificFlights = [x.strip() for x in trip.specificFlights.split(',')]
 	
+		for flight in segment:
 
-	def findLowestFare(trip, flights, departure)
+				# If flight is sold-out or otherwise unavailable, no reason to process further
+			if(flight['fare'] is None):
+				continue
 
-		fare = findLowestFareSpecificFlight(trip, flights, departure) 
+				# Now, see if looking for specificFlights - if this is set, all other rules do not matter...
+			if(len(specificFlights) and (flight['flight'] not in specificFlights)):
+				continue
+				
+			if(trip.maxStops < flight['stops']):
+				continue
 
-		if
-			return -1			
+			if((trip.maxDuration > 0.0) and (trip.maxDuration < flight['duration'])):
+				continue
 
+			if((trip.maxPrice > 0) and (trip.maxPrice < flight['fare'])):
+				continue
 
-		return 0
+			if(lowestCurrentFare is None):
+				lowestCurrentFare = flight['fare']
+			elif(flight['fare'] < lowestCurrentFare):
+				lowestCurrentFare = flight['fare']
+
+		return lowestCurrentFare
 
 
 	def processTrips(self, config):
@@ -81,7 +104,7 @@ class swatcher(object):
 			print(self.now() + ": Querying flight '" + trip.description + "'");
 
 			try:
-				swa.scrape(
+				segments = swa.scrape(
 					browser = config.browser,
 					originationAirportCode = trip.originationAirportCode,
 					destinationAirportCode = trip.destinationAirportCode,
@@ -106,8 +129,10 @@ class swatcher(object):
 
 				# If here, successfully scraped, so reset errorCount
 			self.state[trip.index].errorCount = 0
-
-			
+			for segment in segments:
+				lowestFare = self.findLowestFareInSegment(trip, segment)
+				
+				self.sendNotification(config.notification, "Lowest segment fare: " + str(lowestFare))
 				
 		return True	
 
