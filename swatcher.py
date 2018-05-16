@@ -7,7 +7,6 @@ from datetime import datetime
 import swa
 import configuration
 
-
 DEFAULT_CONFIGURATION_FILE = "swatcher.ini"
 
 class state(object):
@@ -45,7 +44,7 @@ class swatcher(object):
 
 		print(self.now() + ": SENDING NOTIFICATION!!! '" + message + "'");
 
-	def findLowestFare(trip, flightList, departure)
+	def findLowestiFareSpecificFlight(trip, flights, departure):
 
 		if(departure and not trip.departureFlight):
 			specificFlight = trip.departureFlight
@@ -55,9 +54,19 @@ class swatcher(object):
 			specificFlight = ''
 
 		if(specificFlight):
-
+			for flight in flights:
+				if(flight['flight'] == specificFlight):
+					return flight['fare']
 			return 0
-		
+		return -1
+	
+
+	def findLowestFare(trip, flights, departure)
+
+		fare = findLowestFareSpecificFlight(trip, flights, departure) 
+
+		if
+			return -1			
 
 
 		return 0
