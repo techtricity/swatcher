@@ -47,10 +47,14 @@ class swatcher(object):
 
 		if(notification.type == 'smtp'):
 			try:
-				server = smtplib.SMTP(notification.host, notification.port)
-
 				if(notification.useAuth):
+					server = SMTP_SSL(notification.host, notification.port)
+								
 					server.login(notification.username, notification.password)
+
+				else:
+					server = smtplib.SMTP(notification.host, notification.port)
+
 
 				mailMessage = """From: %s\nTo: %s\nX-Priority: 2\nSubject: %s\n\n """ % (notification.sender, notification.recipient, message)
 				server.sendmail(notification.sender, notification.recipient, mailMessage)
@@ -61,6 +65,8 @@ class swatcher(object):
 			return
 		elif(notification.type == 'twilio'):
 			try:
+				modules = map(__import__, "from 
+
 				client = Client(notification.accountSid, notification.authToken)
 				client.messages.create(to = notification.recipient, from_ = notification.sender, body = message)
 			except Exception as e: 
@@ -193,6 +199,7 @@ class swatcher(object):
 			print("Error in processing configuration file: " + str(e))
 			quit()
 
+		self.sendNotification(config.notification, "test!!!")
 		self.state = [state() for i in xrange(len(config.trips))]	
 
 		while True:
