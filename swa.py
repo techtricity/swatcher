@@ -180,7 +180,7 @@ def scrape(
 
 	if("trip--form-container" in element.get_attribute("class")):
 			# If in here, the browser is asking to re-enter flight information, meaning that
-			# parameters supplied are most likely 
+			# parameters supplied are most likely bad
 		raise scrapeValidation("scrape: SWA Website reported what appears to be errors with parameters")
 	elif(len(element.find_elements_by_class_name("error-no-routes-exist")) > 0):
 			# If in here, this means that most likely, flights haven't opened for this date
