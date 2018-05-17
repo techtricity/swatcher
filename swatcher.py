@@ -2,9 +2,7 @@
 
 import argparse
 import time
-import smtplib
 from datetime import datetime
-from twilio.rest import Client
 
 import swa
 import configuration
@@ -47,14 +45,15 @@ class swatcher(object):
 
 		if(notification.type == 'smtp'):
 			try:
+					# importing this way keeps people who aren't interested in smtplib from installing it..
+				smtplib = __import__('smtplib')
 				if(notification.useAuth):
-					server = SMTP_SSL(notification.host, notification.port)
-								
+					server = smtplib.SMTP(notification.host, notification.port)
+					server.ehlo()
+					server.starttls()
 					server.login(notification.username, notification.password)
-
 				else:
 					server = smtplib.SMTP(notification.host, notification.port)
-
 
 				mailMessage = """From: %s\nTo: %s\nX-Priority: 2\nSubject: %s\n\n """ % (notification.sender, notification.recipient, message)
 				server.sendmail(notification.sender, notification.recipient, mailMessage)
@@ -65,9 +64,10 @@ class swatcher(object):
 			return
 		elif(notification.type == 'twilio'):
 			try:
-				modules = map(__import__, "from 
+					# importing this way keeps people who aren't interested in Twilio from installing it..
+				twilio = __import__('twilio.rest')
 
-				client = Client(notification.accountSid, notification.authToken)
+				client = twilio.rest.Client(notification.accountSid, notification.authToken)
 				client.messages.create(to = notification.recipient, from_ = notification.sender, body = message)
 			except Exception as e: 
 				print(self.now() + ": UNABLE TO SEND NOTIFICATION DUE TO ERROR - " + str(e))
@@ -199,7 +199,7 @@ class swatcher(object):
 			print("Error in processing configuration file: " + str(e))
 			quit()
 
-		self.sendNotification(config.notification, "test!!!")
+		self.sendNotification(config.notification, "test")
 		self.state = [state() for i in xrange(len(config.trips))]	
 
 		while True:
