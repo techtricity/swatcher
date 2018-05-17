@@ -199,7 +199,6 @@ class swatcher(object):
 			print("Error in processing configuration file: " + str(e))
 			quit()
 
-		self.sendNotification(config.notification, "test")
 		self.state = [state() for i in xrange(len(config.trips))]	
 
 		while True:
