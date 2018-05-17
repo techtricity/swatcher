@@ -27,29 +27,32 @@ defaultOptions = {
 	'leapfrogRequest':'true'
 }
 
-class scrapeValidationError(Exception):
+class scrapeValidation(Exception):
 	pass
 
-class scrapeTimeoutError(Exception):
+class scrapeTimeout(Exception):
 	pass
 
-class scrapeGeneralError(Exception):
+class scrapeGeneral(Exception):
+	pass
+
+class scrapeDatesNotOpen(Exception):
 	pass
 
 def validateAirportCode(airportCode):
 
 	if(not airportCode.isalpha()):
-		raise scrapeValidationError("validateAirportCode: '" + airportCode + "' contains non-alphabetic characters")
+		raise scrapeValidation("validateAirportCode: '" + airportCode + "' contains non-alphabetic characters")
 
 	if(len(airportCode) != 3):
-		raise scrapeValidationError("validateAirportCode: '" + airportCode + "' can only be 3 characters")
+		raise scrapeValidation("validateAirportCode: '" + airportCode + "' can only be 3 characters")
 
 	return airportCode.upper() # No necessary, but prefer to have in upper case
 
 def validateTripType(tripType):
 
 	if((tripType != "roundtrip") and (tripType != "oneway")):
-		raise scrapeValidationError("validateTripType: '" + tripType + "' not valid, must be 'roundtrip' or 'oneway'")
+		raise scrapeValidation("validateTripType: '" + tripType + "' not valid, must be 'roundtrip' or 'oneway'")
 
 	return tripType
 
@@ -57,7 +60,7 @@ def validateDate(date):
 
 	pattern = re.compile("^20[0-9][0-9]-[0-1][0-9]-[0-3][0-9]$")
 	if(not pattern.match(date)):
-		raise scrapeValidationError("validateDate: '" + date + "' not in the format YYYY-MM-DD")
+		raise scrapeValidation("validateDate: '" + date + "' not in the format YYYY-MM-DD")
 
 	return date
 
@@ -75,13 +78,13 @@ def validateTimeOfDay(timeOfDay):
 	elif(timeOfDay == "evening"):
 		return "AFTER_SIX"
 	else:
-		raise scrapeValidationError("validateTimeOfDay: '" + timeOfDay + "' invalid")
+		raise scrapeValidation("validateTimeOfDay: '" + timeOfDay + "' invalid")
 
 def validatePassengersCount(passengersCount):
 	if( 1 <= passengersCount <= 8):
 		return passengersCount
 	else:
-		raise scrapeValidationError("validatePassengersCount: '" + passengersCount + "' must be 1 through 8")
+		raise scrapeValidation("validatePassengersCount: '" + passengersCount + "' must be 1 through 8")
 
 def scrapeFare(element, className):
 
@@ -163,20 +166,25 @@ def scrape(
 
 	driver.get(fullUrl)
 
-	waitCSS = "#air-booking-product-1, .page-error--message" if tripType == 'roundtrip' else "#air-booking-product-0, .page-error--message"
+	waitCSS = ".page-error--message, .trip--form-container, "
+	waitCSS += "#air-booking-product-1" if tripType == 'roundtrip' else "#air-booking-product-0"
 
 	try:
 		element = WebDriverWait(driver, URL_TIMEOUT).until( EC.element_to_be_clickable((By.CSS_SELECTOR, waitCSS)))
 
 	except TimeoutException:
-		raise scrapeTimeoutError("scrape: Timeout occurred after " + str(URL_TIMEOUT) + " seconds waiting for web result")
+		raise scrapeTimeout("scrape: Timeout occurred after " + str(URL_TIMEOUT) + " seconds waiting for web result")
 	except Exception as ex:
-		template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-		message = template.format(type(ex).__name__, ex.args)
-		raise scrapeGeneralError("scrape: General exception occurred - " + message)
-	finally:
-		if(debug):
-			open("dump.html", "w").write(u''.join((driver.page_source)).encode('utf-8').strip())
+		message = "An exception of type {0} occurred. Arguments:\n{1!r}".format(type(ex).__name__, ex.args)
+		raise scrapeGeneral("scrape: General exception occurred - " + message)
+
+	if("trip--form-container" in element.get_attribute("class")):
+			# If in here, the browser is asking to re-enter flight information, meaning that
+			# parameters supplied are most likely 
+		raise scrapeValidation("scrape: SWA Website reported what appears to be errors with parameters")
+	elif(len(element.find_elements_by_class_name("error-no-routes-exist")) > 0):
+			# If in here, this means that most likely, flights haven't opened for this date
+		raise scrapeDatesNotOpen("")
 
 	# If here, we should have results, so  parse out...
 	priceMatrixes = driver.find_elements_by_class_name("air-booking-select-price-matrix")

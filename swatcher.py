@@ -4,6 +4,7 @@ import argparse
 import time
 import smtplib
 from datetime import datetime
+from twilio.rest import Client
 
 import swa
 import configuration
@@ -14,8 +15,9 @@ class state(object):
 
 	def __init__(self):
 		self.errorCount = 0
-		self.currentFare = 0
+		self.currentLowestFare = None 
 		self.blockQuery = False
+		self.firstQuery = True
 
 
 class swatcher(object):
@@ -51,10 +53,16 @@ class swatcher(object):
 					server.login(notification.username, notification.password)
 
 				mailMessage = """From: %s\nTo: %s\nX-Priority: 2\nSubject: %s\n\n """ % (notification.sender, notification.recipient, message)
-				print mailMessage
 				server.sendmail(notification.sender, notification.recipient, mailMessage)
 				server.quit()
 
+			except Exception as e: 
+				print(self.now() + ": UNABLE TO SEND NOTIFICATION DUE TO ERROR - " + str(e))
+			return
+		elif(notification.type == 'twilio'):
+			try:
+				client = Client(notification.accountSid, notification.authToken)
+				client.messages.create(to = notification.recipient, from_ = notification.sender, body = message)
 			except Exception as e: 
 				print(self.now() + ": UNABLE TO SEND NOTIFICATION DUE TO ERROR - " + str(e))
 			return
@@ -94,46 +102,84 @@ class swatcher(object):
 
 		return lowestCurrentFare
 
+	def processTrip(self, trip, config):
+		if(self.state[trip.index].blockQuery):
+			return True;
+
+		print(self.now() + ": Querying flight '" + trip.description + "'");
+
+		try:
+			segments = swa.scrape(
+				browser = config.browser,
+				originationAirportCode = trip.originationAirportCode,
+				destinationAirportCode = trip.destinationAirportCode,
+				departureDate = trip.departureDate,
+				departureTimeOfDay = trip.departureTimeOfDay,
+				returnDate = trip.returnDate,
+				returnTimeOfDay = trip.returnTimeOfDay,
+				tripType = trip.type,
+				adultPassengersCount = trip.adultPassengersCount,
+				debug = config.debug
+			)
+		except swa.scrapeValidation as e:
+			print(e)
+			print("\nValidation errors are not retryable, so swatcher is exiting")
+			return False
+		except swa.scrapeDatesNotOpen as e:
+			if(self.state[trip.index].firstQuery):
+				self.sendNotification(config.notification, "For '" + trip.description + "' dates do not appear open.")
+				self.state[trip.index].firstQuery = False
+			return True
+		except swa.scrapeTimeout as e:
+				# This could be a few things - internet or SWA website is down. 
+				# it could also mean my WebDriverWait conditional is incorrect/changed. Don't know
+				# what to do about this, so for now, just print to screen and try again at next loop
+			print(self.now() + ": Timeout waiting for results, will retry next loop")
+			return True
+		except Exception as e:
+			print(e)
+			self.state[trip.index].errorCount += 1
+			if(self.state[trip.index].errorCount == 10):
+				self.state[trip.index].blockQuery = True;
+				self.sendNotification(config.notification, "For '" + trip.description + "' ceasing queries due to frequent errors")
+			return True
+			
+			# If here, successfully scraped, so reset errorCount
+		self.state[trip.index].errorCount = 0
+
+		lowestFare = None
+		for segment in segments:
+			lowestSegmentFare = self.findLowestFareInSegment(trip, segment)
+			if(lowestSegmentFare is None):
+				break;
+			lowestFare = lowestSegmentFare if (lowestFare is None) else lowestFare + lowestSegmentFare
+
+		if(self.state[trip.index].firstQuery):
+			if(lowestFare is None):
+				self.sendNotification(config.notification, trip.description + ": Initial fare UNAVAILABLE")
+			else:
+				self.sendNotification(config.notification, trip.description + ": Initial fare $" + str(lowestFare))
+				self.state[trip.index].currentLowestFare = lowestFare
+			self.state[trip.index].firstQuery = False
+		elif(self.state[trip.index].currentLowestFare is None):
+			if(lowestFare is not None):
+				self.sendNotification(config.notification, trip.description + ": Fare now $" + str(lowestFare))
+				self.state[trip.index].currentLowestFare = lowestFare
+		else:
+			if(lowestFare is None):
+				self.sendNotification(config.notification, trip.description + ": Fares now UNAVAILABLE")
+				self.state[trip.index].currentLowestFare = None
+			elif(lowestFare != self.state[trip.index].currentLowestFare):
+				self.sendNotification(config.notification, trip.description + ": Lowest fares now $" + str(lowestFare))
+				self.state[trip.index].currentLowestFare = lowestFare
+					
+		return True	
+
 
 	def processTrips(self, config):
 		for trip in config.trips:
-
-			if(self.state[trip.index].blockQuery):
-				return True;
-
-			print(self.now() + ": Querying flight '" + trip.description + "'");
-
-			try:
-				segments = swa.scrape(
-					browser = config.browser,
-					originationAirportCode = trip.originationAirportCode,
-					destinationAirportCode = trip.destinationAirportCode,
-					departureDate = trip.departureDate,
-					departureTimeOfDay = trip.departureTimeOfDay,
-					returnDate = trip.returnDate,
-					returnTimeOfDay = trip.returnTimeOfDay,
-					tripType = trip.type,
-					adultPassengersCount = trip.adultPassengersCount,
-					debug = config.debug
-				)
-			except swa.scrapeValidationError as e:
-				print(e)
-				print("\nValidation errors are not retryable, so swatcher is exiting")
+			if(not self.processTrip(trip, config)):
 				return False
-			except Exception as e:
-				print(e)
-				self.state[trip.index].errorCount += 1
-				if(self.state[trip.index].errorCount == 10):
-					self.state[trip.index].blockQuery = True;
-				self.sendNotification(config.notification, "For trip '" + trip.description + "' ceasing queries due to frequent errors")
-
-				# If here, successfully scraped, so reset errorCount
-			self.state[trip.index].errorCount = 0
-			for segment in segments:
-				lowestFare = self.findLowestFareInSegment(trip, segment)
-				
-				self.sendNotification(config.notification, "Lowest segment fare: " + str(lowestFare))
-				
 		return True	
 
 	def main(self):
@@ -157,7 +203,6 @@ class swatcher(object):
 			time.sleep(config.pollInterval * 60)
 
 		return
-
 	
 if __name__ == "__main__":
 	swatcher = swatcher()	

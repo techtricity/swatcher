@@ -52,15 +52,15 @@ class configurationTwilio(object):
 		else:
 			raise Exception("Configuration for Twilio missing required 'authToken' option")
 
-		if(cp.has_option('twilio', 'to')):
-			self.to = cp.get('twilio', 'to')
+		if(cp.has_option('twilio', 'sender')):
+			self.sender = cp.get('twilio', 'sender')
 		else:
-			raise Exception("Configuration for Twilio missing required 'to' option")
+			raise Exception("Configuration for Twilio missing required 'sender' option")
 
-		if(cp.has_option('twilio', 'from')):
-			self.from = cp.get('twilio', 'from')
+		if(cp.has_option('twilio', 'recipient')):
+			self.recipient = cp.get('twilio', 'recipient')
 		else:
-			raise Exception("Configuration for Twilio missing required 'from' option")
+			raise Exception("Configuration for Twilio missing required 'recipient' option")
 
 
 class configurationBrowserChrome(object):
@@ -154,7 +154,7 @@ class configuration(object):
 
 		if(self.notificationMethod == 'smtp'):
 			self.notification = configurationSmtp(cp)
-		if(self.notificationMethod == 'twilio'):
+		elif(self.notificationMethod == 'twilio'):
 			self.notification = configurationTwilio(cp)
 		else:
 			raise Exception("Unrecognized notificationMethod '" + self.notificationMethod + "'")
