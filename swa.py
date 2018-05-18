@@ -1,6 +1,7 @@
 import time
 import requests
 import collections
+import datetime
 import re
 
 from selenium import webdriver
@@ -124,7 +125,7 @@ def scrapeFlights(flight):
 	return flightDetails
 
 def scrape(
-	browser,
+	driver,
 	originationAirportCode, # 3 letter airport code (eg: MDW - for Midway, Chicago, Illinois)
 	destinationAirportCode, # 3 letter airport code (eg: MCO - for Orlando, Florida) 
 	departureDate, # Flight departure date in YYYY-MM-DD format
@@ -156,14 +157,6 @@ def scrape(
 
 	fullUrl = URL + '?' + query
 
-	if(browser.type == 'chrome'):
-		options = webdriver.ChromeOptions()
-		options.binary_location = browser.binaryLocation
-		options.add_argument('headless')
-		driver = webdriver.Chrome(chrome_options=options)
-	else:
-		raise scrapeGeneralError("scrape: Unsupported web browser '" + browser.type + "' specified")
-
 	driver.get(fullUrl)
 
 	waitCSS = ".page-error--message, .trip--form-container, "
@@ -177,6 +170,9 @@ def scrape(
 	except Exception as ex:
 		message = "An exception of type {0} occurred. Arguments:\n{1!r}".format(type(ex).__name__, ex.args)
 		raise scrapeGeneral("scrape: General exception occurred - " + message)
+	finally:
+		open("dump-" + ".html", "w").write(u''.join((driver.page_source)).encode('utf-8').strip())
+
 
 	if("trip--form-container" in element.get_attribute("class")):
 			# If in here, the browser is asking to re-enter flight information, meaning that

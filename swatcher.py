@@ -2,7 +2,8 @@
 
 import argparse
 import time
-from datetime import datetime
+import selenium
+import datetime
 
 import swa
 import configuration
@@ -24,7 +25,7 @@ class swatcher(object):
 		self.state = []
 	
 	def now(self):
-		return datetime.now().strftime('%Y-%m-%d %H:%M:%S') 
+		return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') 
 
 	def parseArguments(self):
 
@@ -108,7 +109,7 @@ class swatcher(object):
 
 		return lowestCurrentFare
 
-	def processTrip(self, trip, config):
+	def processTrip(self, trip, config, driver):
 		if(self.state[trip.index].blockQuery):
 			return True;
 
@@ -116,7 +117,7 @@ class swatcher(object):
 
 		try:
 			segments = swa.scrape(
-				browser = config.browser,
+				driver = driver,
 				originationAirportCode = trip.originationAirportCode,
 				destinationAirportCode = trip.destinationAirportCode,
 				departureDate = trip.departureDate,
@@ -182,9 +183,9 @@ class swatcher(object):
 		return True	
 
 
-	def processTrips(self, config):
+	def processTrips(self, config, driver):
 		for trip in config.trips:
-			if(not self.processTrip(trip, config)):
+			if(not self.processTrip(trip, config, driver)):
 				return False
 		return True	
 
@@ -201,9 +202,19 @@ class swatcher(object):
 
 		self.state = [state() for i in xrange(len(config.trips))]	
 
+		if(config.browser.type == 'chrome'):
+			options =selenium.webdriver.ChromeOptions()
+			options.binary_location = config.browser.binaryLocation
+			options.add_argument('headless')
+			driver = selenium.webdriver.Chrome(chrome_options=options)
+		else:
+			print("Unsupported web browser '" + browser.type + "' specified")
+			quit()
+			
+
 		while True:
 		
-			if(not self.processTrips(config)):
+			if(not self.processTrips(config, driver)):
 				break
 
 			time.sleep(config.pollInterval * 60)
