@@ -19,7 +19,7 @@ Tis utility has been written in Python, and targetted to 2.7, since going to 3 s
 
 Due to the switch from static to dynamic pages, BeautifulSoup could no longer be used, instead Selenium was required. With the active content, a browser needs to be used to retrieve the content. I initially tried to use Selenium with PhantomJS, but was unsuccessful in getting it to run headless, so instead decided to test against Chrome and Firefox, since these are widely used and most likely already installed on the developers machine.
 
-To understand how to properly use and configure swatcher, please refer to the configuration template "swatcher.ini". This file provides all the details needed to specifying all the trips you would like to monitor, setting up the notification method (SMTP or Twilio), and choosing which browser you would like to use for scraping. There appears to be tight correlation between what version of Selenium, WebDriver, and Browser are used - unexpected execptions, incorrect headless operation, and other issues were encountered, until I settled on software versions called out below.
+To understand how to properly use and configure swatcher, please refer to the configuration template "swatcher.ini". This file provides all the details needed to specifying all the trips you would like to monitor, setting up the notification method (SMTP or Twilio), and choosing which browser you would like to use for scraping. There appears to be tight correlation between what version of Selenium, WebDriver, and Browser are used - unexpected exceptions, incorrect headless operation, and other issues were encountered, until I settled on software versions called out below.
 
 #### Using with Google Chrome
 
