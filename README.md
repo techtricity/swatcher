@@ -1,4 +1,5 @@
 # swatcher
+Southwest Airlines website scraper
 ### Southwest Airlines (SWA) website scraper
 
 Prior to the April 2018 redesign of the Southwest booking pages from a more static model to dynamic, I had been using swa-dashboard (https://github.com/gilby125/swa-dashboard/commits/master) for scraping for price changes. It had some limitations, but since it generally worked, I overlooked the limitations.
