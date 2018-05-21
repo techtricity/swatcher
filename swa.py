@@ -171,8 +171,8 @@ def scrape(
 		message = "An exception of type {0} occurred. Arguments:\n{1!r}".format(type(ex).__name__, ex.args)
 		raise scrapeGeneral("scrape: General exception occurred - " + message)
 	finally:
-		open("dump-" + ".html", "w").write(u''.join((driver.page_source)).encode('utf-8').strip())
-
+		if(debug):
+			open("dump-" + datetime.datetime.now().strftime('%Y%m%d-%H%M%S') + ".html", "w").write(u''.join((driver.page_source)).encode('utf-8').strip())
 
 	if("trip--form-container" in element.get_attribute("class")):
 			# If in here, the browser is asking to re-enter flight information, meaning that
