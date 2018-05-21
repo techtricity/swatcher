@@ -1,4 +1,4 @@
-# swatcher
+``# swatcher
 ### Southwest Airlines (SWA) website scraper
 
 Prior to the April 2018 redesign of the Southwest booking pages from a more static model to dynamic, I had been using swa-dashboard (https://github.com/gilby125/swa-dashboard/commits/master) for scraping for price changes. It had some limitations, but since it generally worked, I overlooked the limitations.
@@ -14,7 +14,7 @@ With the redesign, the scraper stopped working and I decided it was time to auth
 * Monitor all price changes, not just price reductions. Also just send one notification for each change event - no need to get pinged repeatedly. Also by tracking all price changes, both increases and decreases, it makes it easier to spot trends
 * Add support for both SMTP notification, as well as Twilio
 
-This utility has been written in Python, and targetted to 2.7, since going to 3 seemed unncecessary. Python requirments can be installed through pip and "pip install -r requirements.txt".
+Tis utility has been written in Python, and targetted to 2.7, since going to 3 seemed unncecessary. Python requirments can be installed through pip and ```pip install -r requirements.txt```.
 
 Due to the switch from static to dynamic pages, BeautifulSoup could no longer be used, instead Selenium was required. With the active content, a browser needs to be used to retrieve the content. I initially tried to use Selenium with PhantomJS, but was unsuccessful in getting it to run headless, so instead decided to test against Chrome and Firefox, since these are widely used and most likely already installed on the developers machine.
 
@@ -36,6 +36,13 @@ https://github.com/mozilla/geckodriver/releases
 
 and installed by either adding the geckodriver directory to you path or copying geckodriver to an existing directory on your path. GeckoDriver 0.20.1 along with Selenium 3.12.0 has been tested and found to work as expected.
 
+#### Twilio
+
+I am not a fan of Twilio, instead I prefer SMTP. As such, I have not included Twilio in the requirements.txt, and swatcher does dynamic module import for Twilio, so if you do not intend on using it, you don't need to install it.
+
+If you do need to install it, it can be done via pip:
+
+```pip install twilio```
 
 #### Environment
 
