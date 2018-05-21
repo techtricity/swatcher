@@ -13,7 +13,7 @@ With the redesign, the scraper stopped working and I decided it was time to auth
 * Have configuration fully driven by configuration file, instead of command line. This would allow setting up different templates as needed, and not having to remember command line syntax if you haven't used the program in a few months
 * Monitor all price changes, not just price reductions. Also just send one notification for each change event - no need to get pinged repeatedly. Also by tracking all price changes, both increases and decreases, it makes it easier to spot trends
 * Allow monitoring prior to flights opening. Southwest typically starts their fares low, then raises them as seats fill. Many times the best fare can be gotten by waiting for new dates to open and booking immediately. Southwest sometimes posts when filghts will open, but many times will open sooner than expected. Now you can get notificed the moment fares open without having to frequently poll the site
-* Add support for both SMTP notification, as well as Twilio
+* Add support for SMTP notification as well as Twilio
 
 Tis utility has been written in Python, and targetted to 2.7, since going to 3 seemed unncecessary. Python requirments can be installed through pip and ```pip install -r requirements.txt```.
 
