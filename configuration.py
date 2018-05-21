@@ -70,12 +70,28 @@ class configurationBrowserChrome(object):
 		self.type = 'chrome'
 
 		if(cp.has_section('chrome') == False):
-			raise Exception("Configuration file does not contain 'chrome' section'")
+			raise Exception("Configuration file does not contain 'chrome' section")
 		
 		if(cp.has_option('chrome', 'binaryLocation')):
 			self.binaryLocation = cp.get('chrome', 'binaryLocation')
 		else:
-			raise Exception("For Chrome browser configuration, required option binaryLocation is missing")
+			raise exception("For chrome browser configuration, required option binaryLocation is missing")
+
+class configurationBrowserFirefox(object):
+
+	def __init__(self, cp):
+
+		self.type = 'firefox'
+
+		if(cp.has_section('firefox') == False):
+			raise Exception("Configuration file does not contain 'chrome' section")
+		
+		if(cp.has_option('firefox', 'binaryLocation')):
+			self.binaryLocation = cp.get('firefox', 'binaryLocation')
+		else:
+			raise exception("For firefox browser configuration, required option binaryLocation is missing")
+
+
 
 class configurationTrip(object):
 
@@ -139,13 +155,13 @@ class configuration(object):
 		if(cp.has_option('global', 'pollInterval')):
 			self.pollInterval = cp.getint('global', 'pollInterval')
 
-#		if(self.pollInterval < 10):
-#			self.pollInterval = 10
+		if(self.pollInterval < 10):
+			self.pollInterval = 10
 
 		if(cp.has_option('global', 'debug')):
 			self.debug = cp.getboolean('global', 'debug')
 		else:
-			self.debug = false
+			self.debug = False
 
 		if(cp.has_option('global', 'notificationMethod')):
 			self.notificationMethod = cp.get('global', 'notificationMethod')
@@ -166,8 +182,10 @@ class configuration(object):
 
 		if(self.browser == 'chrome'):
 			self.browser = configurationBrowserChrome(cp)
+		elif(self.browser == 'firefox'):
+			self.browser = configurationBrowserFirefox(cp)
 		else:
-			raise Exception("Unrecognized browser '" + self.notificationMethod + "'")
+			raise Exception("Unrecognized browser '" + self.browser + "'")
 
 		i = 0;
 		self.trips = []

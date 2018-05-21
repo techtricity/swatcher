@@ -202,11 +202,16 @@ class swatcher(object):
 
 		self.state = [state() for i in xrange(len(config.trips))]	
 
-		if(config.browser.type == 'chrome'):
-			options =selenium.webdriver.ChromeOptions()
+		if(config.browser.type == 'chrome'): # Or Chromium
+			options = selenium.webdriver.ChromeOptions()
 			options.binary_location = config.browser.binaryLocation
 			options.add_argument('headless')
 			driver = selenium.webdriver.Chrome(chrome_options=options)
+		elif(config.browser.type == 'firefox'): # Or Iceweasel
+			options = selenium.webdriver.firefox.options.Options()
+			options.binary_location = config.browser.binaryLocation
+			options.add_argument('--headless')
+			driver = selenium.webdriver.Firefox(firefox_options = options)
 		else:
 			print("Unsupported web browser '" + browser.type + "' specified")
 			quit()
