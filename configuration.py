@@ -152,11 +152,8 @@ class configuration(object):
 			raise Exception("Configuration file does not contain 'global' section'")
 
 		self.pollInterval = 30
-		if(cp.has_option('global', 'pollInterval')):
+		if(cp.has_option('global', 'pollInterval') and (cp.getint('global', 'pollInterval') >= 10)):
 			self.pollInterval = cp.getint('global', 'pollInterval')
-
-		if(self.pollInterval < 10):
-			self.pollInterval = 10
 
 		if(cp.has_option('global', 'debug')):
 			self.debug = cp.getboolean('global', 'debug')
