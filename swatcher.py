@@ -4,6 +4,7 @@ import argparse
 import time
 import selenium
 import datetime
+import os
 
 import swa
 import configuration
@@ -17,6 +18,7 @@ class state(object):
 		self.currentLowestFare = None 
 		self.blockQuery = False
 		self.firstQuery = True
+		self.notificationHistory = ''
 
 
 class swatcher(object):
@@ -40,9 +42,12 @@ class swatcher(object):
 
 		return args
 
-	def sendNotification(self, notification, message):
+	def sendNotification(self, notification, index, message):
 
 		print(self.now() + ": SENDING NOTIFICATION!!! '" + message + "'")
+
+		if(index is not None):
+			self.state[index].notificationHistory += self.now() + ": " + message + os.linesep
 
 		if(notification.type == 'smtp'):
 			try:
@@ -56,7 +61,10 @@ class swatcher(object):
 				else:
 					server = smtplib.SMTP(notification.host, notification.port)
 
-				mailMessage = """From: %s\nTo: %s\nX-Priority: 2\nSubject: %s\n\n """ % (notification.sender, notification.recipient, message)
+				mailMessage = """From: %s\nTo: %s\nX-Priority: 2\nSubject: %s\n\n""" % (notification.sender, notification.recipient, message)
+				if(index is not None):
+					mailMessage += self.state[index].notificationHistory		
+			
 				server.sendmail(notification.sender, notification.recipient, mailMessage)
 				server.quit()
 
@@ -134,7 +142,7 @@ class swatcher(object):
 			return False
 		except swa.scrapeDatesNotOpen as e:
 			if(self.state[trip.index].firstQuery):
-				self.sendNotification(config.notification, "For '" + trip.description + "' dates do not appear open.")
+				self.sendNotification(config.notification, trip.index, "For '" + trip.description + "' dates do not appear open.")
 				self.state[trip.index].firstQuery = False
 			return True
 		except swa.scrapeTimeout as e:
@@ -148,7 +156,7 @@ class swatcher(object):
 			self.state[trip.index].errorCount += 1
 			if(self.state[trip.index].errorCount == 10):
 				self.state[trip.index].blockQuery = True;
-				self.sendNotification(config.notification, "For '" + trip.description + "' ceasing queries due to frequent errors")
+				self.sendNotification(config.notification, trip.index, "For '" + trip.description + "' ceasing queries due to frequent errors")
 			return True
 			
 			# If here, successfully scraped, so reset errorCount
@@ -163,21 +171,21 @@ class swatcher(object):
 
 		if(self.state[trip.index].firstQuery):
 			if(lowestFare is None):
-				self.sendNotification(config.notification, trip.description + ": Initial fare UNAVAILABLE")
+				self.sendNotification(config.notification, trip.index, trip.description + ": Initial fare UNAVAILABLE")
 			else:
-				self.sendNotification(config.notification, trip.description + ": Initial fare $" + str(lowestFare))
+				self.sendNotification(config.notification, trip.index, trip.description + ": Initial fare $" + str(lowestFare))
 				self.state[trip.index].currentLowestFare = lowestFare
 			self.state[trip.index].firstQuery = False
 		elif(self.state[trip.index].currentLowestFare is None):
 			if(lowestFare is not None):
-				self.sendNotification(config.notification, trip.description + ": Fare now $" + str(lowestFare))
+				self.sendNotification(config.notification, trip.index, trip.description + ": Fare now $" + str(lowestFare))
 				self.state[trip.index].currentLowestFare = lowestFare
 		else:
 			if(lowestFare is None):
-				self.sendNotification(config.notification, trip.description + ": Fares now UNAVAILABLE")
+				self.sendNotification(config.notification, trip.index, trip.description + ": Fares now UNAVAILABLE")
 				self.state[trip.index].currentLowestFare = None
 			elif(lowestFare != self.state[trip.index].currentLowestFare):
-				self.sendNotification(config.notification, trip.description + ": Lowest fares now $" + str(lowestFare))
+				self.sendNotification(config.notification, trip.index, trip.description + ": Lowest fares now $" + str(lowestFare))
 				self.state[trip.index].currentLowestFare = lowestFare
 					
 		return True	
