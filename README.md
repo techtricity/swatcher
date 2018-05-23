@@ -47,7 +47,14 @@ If you do need to install it, it can be done via pip:
 
 #### Environment
 
-Swatcher has been tested and found to work on Ubuntu 16.04, 18.04 and Debian 8. I have yet to test under Windows or MacOS, but I do not see any reason why it shouldn't work
+##### Linux
+Swatcher has been tested and found to work on Ubuntu 16.04, 18.04 and Debian 8.
+
+##### Windows
+Swatcher has been tested and found to work on Windows 10 using Chrome w/ the aforementioned versions. The only peculiarity is I get a ```DevTools listening on ...``` message to the console which does not appear under Linux, but all else functions normally. As mentioned above, the path to Chrome has to be in your configuration .ini file - make sure backslashes are used for directories and not the Linux forwardslashes.
+
+##### MacOS
+I have yet to test under MacOS, but I do not see any reason why it shouldn't work
 
 #### Modifications and Enhancements
 
