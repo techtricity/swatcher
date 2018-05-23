@@ -2,3 +2,4 @@
 selenium>=3.3.0
 configparser>=3.5.0
 python-dateutil>=2.6.1
+requests

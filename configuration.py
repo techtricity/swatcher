@@ -77,6 +77,11 @@ class configurationBrowserChrome(object):
 		else:
 			raise exception("For chrome browser configuration, required option binaryLocation is missing")
 
+			# INFO = 0, WARNING = 1, LOG_ERROR = 2, LOG_FATAL = 3
+		self.logLevel=3
+		if(cp.has_option('chrome', 'logLevel')):
+			self.logLevel = cp.getint('chrome', 'logLevel')
+
 class configurationBrowserFirefox(object):
 
 	def __init__(self, cp):

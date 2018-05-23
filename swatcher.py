@@ -214,6 +214,7 @@ class swatcher(object):
 			options = selenium.webdriver.ChromeOptions()
 			options.binary_location = config.browser.binaryLocation
 			options.add_argument('headless')
+			options.add_argument("log-level=" + str(config.browser.logLevel))
 			driver = selenium.webdriver.Chrome(chrome_options=options)
 		elif(config.browser.type == 'firefox'): # Or Iceweasel
 			options = selenium.webdriver.firefox.options.Options()
