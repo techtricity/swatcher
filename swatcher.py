@@ -47,7 +47,7 @@ class swatcher(object):
 		print(self.now() + ": SENDING NOTIFICATION!!! '" + message + "'")
 
 		if(index is not None):
-			self.state[index].notificationHistory += self.now() + ": " + message + os.linesep
+			self.state[index].notificationHistory = self.now() + ": " + message + os.linesep + self.state[index].notificationHistory 
 
 		if(notification.type == 'smtp'):
 			try:
