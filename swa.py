@@ -156,10 +156,10 @@ def scrape(
 	query =  '&'.join(['%s=%s' % (key, value) for (key, value) in payload.items()])
 
 	fullUrl = URL + '?' + query
-
+	#print(fullUrl)
 	driver.get(fullUrl)
 
-	waitCSS = ".page-error--message, .trip--form-container, "
+	waitCSS = ".page-error--list, .trip--form-container, "
 	waitCSS += "#air-booking-product-1" if tripType == 'roundtrip' else "#air-booking-product-0"
 
 	try:
@@ -174,13 +174,18 @@ def scrape(
 		if(debug):
 			open("dump-" + datetime.datetime.now().strftime('%Y%m%d-%H%M%S') + ".html", "w").write(u''.join((driver.page_source)).encode('utf-8').strip())
 
-	if("trip--form-container" in element.get_attribute("class")):
+	if("page-error--list" in element.get_attribute("class")):
+			# In the past (Until 2018-05-26) SWA returned a special class identifier (error-no-routes-exist) to more 
+			# correctly identify the reason for the failure, and I used this to tell that routes haven't opened. Now
+			# that is not possible and my old validation tests started failing, so I'm just using the more generic
+			# method of just looking for a class=page-error--list to identify this, as it isn't easy to get
+			# this tag to come up, so I'm assuming that dates haven't opened. Will need to think of a better way
+			# for this...
+		raise scrapeDatesNotOpen("")
+	elif("trip--form-container" in element.get_attribute("class")):
 			# If in here, the browser is asking to re-enter flight information, meaning that
 			# parameters supplied are most likely bad
 		raise scrapeValidation("scrape: SWA Website reported what appears to be errors with parameters")
-	elif(len(element.find_elements_by_class_name("error-no-routes-exist")) > 0):
-			# If in here, this means that most likely, flights haven't opened for this date
-		raise scrapeDatesNotOpen("")
 
 	# If here, we should have results, so  parse out...
 	priceMatrixes = driver.find_elements_by_class_name("air-booking-select-price-matrix")
