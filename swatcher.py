@@ -107,9 +107,6 @@ class swatcher(object):
 			if((trip.maxDuration > 0.0) and (trip.maxDuration < flight['duration'])):
 				continue
 
-			if((trip.maxPrice > 0) and (trip.maxPrice < flight['fare'])):
-				continue
-
 			if(lowestCurrentFare is None):
 				lowestCurrentFare = flight['fare']
 			elif(flight['fare'] < lowestCurrentFare):
@@ -168,13 +165,16 @@ class swatcher(object):
 			if(lowestSegmentFare is None):
 				break;
 			lowestFare = lowestSegmentFare if (lowestFare is None) else lowestFare + lowestSegmentFare
+		
+		if((lowestFare is not None) and (trip.maxPrice > 0) and (lowestFare > trip.maxPrice)):
+			lowestFare = None
 
 		if(self.state[trip.index].firstQuery):
 			if(lowestFare is None):
-				self.sendNotification(config.notification, trip.index, trip.description + ": Initial fare UNAVAILABLE")
+				self.sendNotification(config.notification, trip.index, trip.description + ": Fare that meets criteria is UNAVAILABLE")
 			else:
 				self.sendNotification(config.notification, trip.index, trip.description + ": Initial fare $" + str(lowestFare))
-				self.state[trip.index].currentLowestFare = lowestFare
+			self.state[trip.index].currentLowestFare = lowestFare
 			self.state[trip.index].firstQuery = False
 		elif(self.state[trip.index].currentLowestFare is None):
 			if(lowestFare is not None):
@@ -182,7 +182,7 @@ class swatcher(object):
 				self.state[trip.index].currentLowestFare = lowestFare
 		else:
 			if(lowestFare is None):
-				self.sendNotification(config.notification, trip.index, trip.description + ": Fares now UNAVAILABLE")
+				self.sendNotification(config.notification, trip.index, trip.description + ": Fare that meets criteria is UNAVAILABLE")
 				self.state[trip.index].currentLowestFare = None
 			elif(lowestFare != self.state[trip.index].currentLowestFare):
 				self.sendNotification(config.notification, trip.index, trip.description + ": Lowest fares now $" + str(lowestFare))
