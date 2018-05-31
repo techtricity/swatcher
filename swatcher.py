@@ -45,10 +45,23 @@ class swatcher(object):
 
 	def sendNotification(self, index, message):
 
-		print(self.now() + ": SENDING NOTIFICATION!!! '" + message + "'")
+		if(index is None):
+			return
 
-		if(index is not None):
-			self.state[index].notificationHistory = self.now() + ": " + message + os.linesep + self.state[index].notificationHistory 
+		subject = self.config.trips[index].description + ": " + message
+		print(self.now() + ": SENDING NOTIFICATION!!! '" + subject + "'")
+
+		if(not self.state[index].notificationHistory):
+			tripDetails = os.linesep + "Trip Details:" 
+			ignoreKeys = ['index', 'description']
+			for key in self.config.trips[index].__dict__:
+				if(any(x in key for x in ignoreKeys)):
+					continue
+				tripDetails += os.linesep + "   " + str(key) + ": " + str(self.config.trips[index].__dict__[key]) 
+			self.state[index].notificationHistory = tripDetails
+
+
+		self.state[index].notificationHistory = self.now() + ": " + message + os.linesep + self.state[index].notificationHistory 
 
 		if(self.config.notification.type == 'smtp'):
 			try:
@@ -62,9 +75,8 @@ class swatcher(object):
 				else:
 					server = smtplib.SMTP(self.config.notification.host, self.config.notification.port)
 
-				mailMessage = """From: %s\nTo: %s\nX-Priority: 2\nSubject: %s\n\n""" % (self.config.notification.sender, self.config.notification.recipient, message)
-				if(index is not None):
-					mailMessage += self.state[index].notificationHistory		
+				mailMessage = """From: %s\nTo: %s\nX-Priority: 2\nSubject: %s\n\n""" % (self.config.notification.sender, self.config.notification.recipient, subject)
+				mailMessage += self.state[index].notificationHistory		
 			
 				server.sendmail(self.config.notification.sender, self.config.notification.recipient, mailMessage)
 				server.quit()
@@ -78,7 +90,7 @@ class swatcher(object):
 				twilio = __import__('twilio.rest')
 
 				client = twilio.rest.Client(self.config.notification.accountSid, self.config.notification.authToken)
-				client.messages.create(to = self.config.notification.recipient, from_ = self.config.notification.sender, body = message)
+				client.messages.create(to = self.config.notification.recipient, from_ = self.config.notification.sender, body = subject)
 			except Exception as e: 
 				print(self.now() + ": UNABLE TO SEND NOTIFICATION DUE TO ERROR - " + str(e))
 			return
@@ -174,21 +186,21 @@ class swatcher(object):
 
 		if(self.state[trip.index].firstQuery):
 			if(lowestFare is None):
-				self.sendNotification(trip.index, trip.description + ": Fare that meets criteria is UNAVAILABLE")
+				self.sendNotification(trip.index, "Fare that meets criteria is UNAVAILABLE")
 			else:
-				self.sendNotification(trip.index, trip.description + ": Initial fare $" + str(lowestFare))
+				self.sendNotification(trip.index, "Initial fare $" + str(lowestFare))
 			self.state[trip.index].currentLowestFare = lowestFare
 			self.state[trip.index].firstQuery = False
 		elif(self.state[trip.index].currentLowestFare is None):
 			if(lowestFare is not None):
-				self.sendNotification(trip.index, trip.description + ": Fare now $" + str(lowestFare))
+				self.sendNotification(trip.index, "Fare now $" + str(lowestFare))
 				self.state[trip.index].currentLowestFare = lowestFare
 		else:
 			if(lowestFare is None):
-				self.sendNotification(trip.index, trip.description + ": Fare that meets criteria is UNAVAILABLE")
+				self.sendNotification(trip.index, "Fare that meets criteria is UNAVAILABLE")
 				self.state[trip.index].currentLowestFare = None
 			elif(lowestFare != self.state[trip.index].currentLowestFare):
-				self.sendNotification(trip.index, trip.description + ": Lowest fares now $" + str(lowestFare))
+				self.sendNotification(trip.index, "Lowest fares now $" + str(lowestFare))
 				self.state[trip.index].currentLowestFare = lowestFare
 					
 		return True	
