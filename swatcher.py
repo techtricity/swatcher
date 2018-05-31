@@ -160,13 +160,15 @@ class swatcher(object):
 		self.state[trip.index].errorCount = 0
 
 		lowestFare = None
+		priceCount = 0
 		for segment in segments:
 			lowestSegmentFare = self.findLowestFareInSegment(trip, segment)
 			if(lowestSegmentFare is None):
 				break;
 			lowestFare = lowestSegmentFare if (lowestFare is None) else lowestFare + lowestSegmentFare
+			priceCount += 1
 		
-		if((lowestFare is not None) and (trip.maxPrice > 0) and (lowestFare > trip.maxPrice)):
+		if(((lowestFare is not None) and (trip.maxPrice > 0) and (lowestFare > trip.maxPrice)) or (priceCount != len(segments))):
 			lowestFare = None
 
 		if(self.state[trip.index].firstQuery):
