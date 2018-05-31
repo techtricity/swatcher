@@ -25,6 +25,7 @@ class swatcher(object):
 
 	def __init__(self):
 		self.state = []
+		self.config = None
 	
 	def now(self):
 		return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') 
@@ -42,42 +43,42 @@ class swatcher(object):
 
 		return args
 
-	def sendNotification(self, notification, index, message):
+	def sendNotification(self, index, message):
 
 		print(self.now() + ": SENDING NOTIFICATION!!! '" + message + "'")
 
 		if(index is not None):
 			self.state[index].notificationHistory = self.now() + ": " + message + os.linesep + self.state[index].notificationHistory 
 
-		if(notification.type == 'smtp'):
+		if(self.config.notification.type == 'smtp'):
 			try:
 					# importing this way keeps people who aren't interested in smtplib from installing it..
 				smtplib = __import__('smtplib')
-				if(notification.useAuth):
-					server = smtplib.SMTP(notification.host, notification.port)
+				if(self.config.notification.useAuth):
+					server = smtplib.SMTP(self.config.notification.host, self.config.notification.port)
 					server.ehlo()
 					server.starttls()
-					server.login(notification.username, notification.password)
+					server.login(self.config.notification.username, self.config.notification.password)
 				else:
-					server = smtplib.SMTP(notification.host, notification.port)
+					server = smtplib.SMTP(self.config.notification.host, self.config.notification.port)
 
-				mailMessage = """From: %s\nTo: %s\nX-Priority: 2\nSubject: %s\n\n""" % (notification.sender, notification.recipient, message)
+				mailMessage = """From: %s\nTo: %s\nX-Priority: 2\nSubject: %s\n\n""" % (self.config.notification.sender, self.config.notification.recipient, message)
 				if(index is not None):
 					mailMessage += self.state[index].notificationHistory		
 			
-				server.sendmail(notification.sender, notification.recipient, mailMessage)
+				server.sendmail(self.config.notification.sender, self.config.notification.recipient, mailMessage)
 				server.quit()
 
 			except Exception as e: 
 				print(self.now() + ": UNABLE TO SEND NOTIFICATION DUE TO ERROR - " + str(e))
 			return
-		elif(notification.type == 'twilio'):
+		elif(self.config.notification.type == 'twilio'):
 			try:
 					# importing this way keeps people who aren't interested in Twilio from installing it..
 				twilio = __import__('twilio.rest')
 
-				client = twilio.rest.Client(notification.accountSid, notification.authToken)
-				client.messages.create(to = notification.recipient, from_ = notification.sender, body = message)
+				client = twilio.rest.Client(self.config.notification.accountSid, self.config.notification.authToken)
+				client.messages.create(to = self.config.notification.recipient, from_ = self.config.notification.sender, body = message)
 			except Exception as e: 
 				print(self.now() + ": UNABLE TO SEND NOTIFICATION DUE TO ERROR - " + str(e))
 			return
@@ -114,7 +115,7 @@ class swatcher(object):
 
 		return lowestCurrentFare
 
-	def processTrip(self, trip, config, driver):
+	def processTrip(self, trip, driver):
 		if(self.state[trip.index].blockQuery):
 			return True;
 
@@ -131,7 +132,7 @@ class swatcher(object):
 				returnTimeOfDay = trip.returnTimeOfDay,
 				tripType = trip.type,
 				adultPassengersCount = trip.adultPassengersCount,
-				debug = config.debug
+				debug = self.config.debug
 			)
 		except swa.scrapeValidation as e:
 			print(e)
@@ -139,7 +140,7 @@ class swatcher(object):
 			return False
 		except swa.scrapeDatesNotOpen as e:
 			if(self.state[trip.index].firstQuery):
-				self.sendNotification(config.notification, trip.index, "For '" + trip.description + "' dates do not appear open.")
+				self.sendNotification(trip.index, "For '" + trip.description + "' dates do not appear open.")
 				self.state[trip.index].firstQuery = False
 			return True
 		except swa.scrapeTimeout as e:
@@ -153,7 +154,7 @@ class swatcher(object):
 			self.state[trip.index].errorCount += 1
 			if(self.state[trip.index].errorCount == 10):
 				self.state[trip.index].blockQuery = True;
-				self.sendNotification(config.notification, trip.index, "For '" + trip.description + "' ceasing queries due to frequent errors")
+				self.sendNotification(trip.index, "For '" + trip.description + "' ceasing queries due to frequent errors")
 			return True
 			
 			# If here, successfully scraped, so reset errorCount
@@ -173,29 +174,29 @@ class swatcher(object):
 
 		if(self.state[trip.index].firstQuery):
 			if(lowestFare is None):
-				self.sendNotification(config.notification, trip.index, trip.description + ": Fare that meets criteria is UNAVAILABLE")
+				self.sendNotification(trip.index, trip.description + ": Fare that meets criteria is UNAVAILABLE")
 			else:
-				self.sendNotification(config.notification, trip.index, trip.description + ": Initial fare $" + str(lowestFare))
+				self.sendNotification(trip.index, trip.description + ": Initial fare $" + str(lowestFare))
 			self.state[trip.index].currentLowestFare = lowestFare
 			self.state[trip.index].firstQuery = False
 		elif(self.state[trip.index].currentLowestFare is None):
 			if(lowestFare is not None):
-				self.sendNotification(config.notification, trip.index, trip.description + ": Fare now $" + str(lowestFare))
+				self.sendNotification(trip.index, trip.description + ": Fare now $" + str(lowestFare))
 				self.state[trip.index].currentLowestFare = lowestFare
 		else:
 			if(lowestFare is None):
-				self.sendNotification(config.notification, trip.index, trip.description + ": Fare that meets criteria is UNAVAILABLE")
+				self.sendNotification(trip.index, trip.description + ": Fare that meets criteria is UNAVAILABLE")
 				self.state[trip.index].currentLowestFare = None
 			elif(lowestFare != self.state[trip.index].currentLowestFare):
-				self.sendNotification(config.notification, trip.index, trip.description + ": Lowest fares now $" + str(lowestFare))
+				self.sendNotification(trip.index, trip.description + ": Lowest fares now $" + str(lowestFare))
 				self.state[trip.index].currentLowestFare = lowestFare
 					
 		return True	
 
 
-	def processTrips(self, config, driver):
-		for trip in config.trips:
-			if(not self.processTrip(trip, config, driver)):
+	def processTrips(self, driver):
+		for trip in self.config.trips:
+			if(not self.processTrip(trip, driver)):
 				return False
 		return True	
 
@@ -205,22 +206,22 @@ class swatcher(object):
 		print(self.now() + ": Parsing configuration file '" + args.configurationFile +"'")
 
 		try:
-			config = configuration.configuration(args.configurationFile)
+			self.config = configuration.configuration(args.configurationFile)
 		except Exception as e:
 			print("Error in processing configuration file: " + str(e))
 			quit()
 
-		self.state = [state() for i in xrange(len(config.trips))]	
+		self.state = [state() for i in xrange(len(self.config.trips))]	
 
-		if(config.browser.type == 'chrome'): # Or Chromium
+		if(self.config.browser.type == 'chrome'): # Or Chromium
 			options = selenium.webdriver.ChromeOptions()
-			options.binary_location = config.browser.binaryLocation
+			options.binary_location = self.config.browser.binaryLocation
 			options.add_argument('headless')
-			options.add_argument("log-level=" + str(config.browser.logLevel))
+			options.add_argument("log-level=" + str(self.config.browser.logLevel))
 			driver = selenium.webdriver.Chrome(chrome_options=options)
-		elif(config.browser.type == 'firefox'): # Or Iceweasel
+		elif(self.config.browser.type == 'firefox'): # Or Iceweasel
 			options = selenium.webdriver.firefox.options.Options()
-			options.binary_location = config.browser.binaryLocation
+			options.binary_location = self.config.browser.binaryLocation
 			options.add_argument('--headless')
 			driver = selenium.webdriver.Firefox(firefox_options = options)
 		else:
@@ -230,10 +231,10 @@ class swatcher(object):
 
 		while True:
 		
-			if(not self.processTrips(config, driver)):
+			if(not self.processTrips(driver)):
 				break
 
-			time.sleep(config.pollInterval * 60)
+			time.sleep(self.config.pollInterval * 60)
 
 		return
 	

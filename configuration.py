@@ -189,6 +189,11 @@ class configuration(object):
 		else:
 			raise Exception("Unrecognized browser '" + self.browser + "'")
 
+		if(cp.has_option('global', 'historyFileBase')):
+			self.historyFileBase = cp.get('global', 'historyFileBase')
+		else:
+			self.historyFilerBase = ''
+
 		i = 0;
 		self.trips = []
 		pattern = re.compile("^trip-[0-9]+$")
