@@ -129,7 +129,7 @@ def scrape(
 	originationAirportCode, # 3 letter airport code (eg: MDW - for Midway, Chicago, Illinois)
 	destinationAirportCode, # 3 letter airport code (eg: MCO - for Orlando, Florida) 
 	departureDate, # Flight departure date in YYYY-MM-DD format
-	returnDate, # Flight return date in YYYY-MM-DD format (for roundtip, otherwise ignored)
+	returnDate, # Flight return date in YYYY-MM-DD format (for roundtrip, otherwise ignored)
 	tripType = 'roundtrip', # Can be either 'roundtrip' or 'oneway'
 	departureTimeOfDay = 'ALL_DAY', # Can be either 'ALL_DAY', 'BEFORE_NOON', 'NOON_TO_SIX', or 'AFTER_SIX' (CASE SENSITIVE)
 	returnTimeOfDay = 'ALL_DAY', # Can be either 'ALL_DAY', 'BEFORE_NOON', 'NOON_TO_SIX', or 'AFTER_SIX' (CASE SENSITIVE) 
