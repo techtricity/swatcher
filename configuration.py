@@ -157,7 +157,7 @@ class configuration(object):
 			raise Exception("Configuration file does not contain 'global' section'")
 
 		self.pollInterval = 30
-		if(cp.has_option('global', 'pollInterval') and (cp.getint('global', 'pollInterval') >= 10)):
+		if(cp.has_option('global', 'pollInterval') and (cp.getint('global', 'pollInterval') >= 5)):
 			self.pollInterval = cp.getint('global', 'pollInterval')
 
 		if(cp.has_option('global', 'debug')):
@@ -192,7 +192,7 @@ class configuration(object):
 		if(cp.has_option('global', 'historyFileBase')):
 			self.historyFileBase = cp.get('global', 'historyFileBase')
 		else:
-			self.historyFilerBase = ''
+			self.historyFileBase = ''
 
 		i = 0;
 		self.trips = []
