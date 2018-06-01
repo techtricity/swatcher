@@ -43,6 +43,37 @@ class swatcher(object):
 
 		return args
 
+	def initializeHistory(self, index):
+		
+		tripHistory = os.linesep + "Trip Details:" 
+		ignoreKeys = ['index', 'description']
+		for key in self.config.trips[index].__dict__:
+			if(any(x in key for x in ignoreKeys)):
+				continue
+			tripHistory += os.linesep + "   " + key + ": " + str(self.config.trips[index].__dict__[key]) 
+
+		if(self.config.historyFileBase):
+			try:
+				historyFileName = self.config.historyFileBase + "-" + str(index) + ".history"
+				with open(historyFileName) as historyFile:
+					for line in historyFile:
+						tripHistory = line + tripHistory
+			except IOError as e:
+				pass
+
+		return tripHistory
+
+
+	def appendHistoryFile(self, index, message):
+		if(self.config.historyFileBase):
+			try:
+				historyFileName = self.config.historyFileBase + "-" + str(index) + ".history"
+				with open(historyFileName, 'a') as historyFile:
+					historyFile.write(message + os.linesep)
+			except IOError as e:
+				pass
+
+
 	def sendNotification(self, index, message):
 
 		if(index is None):
@@ -52,16 +83,14 @@ class swatcher(object):
 		print(self.now() + ": SENDING NOTIFICATION!!! '" + subject + "'")
 
 		if(not self.state[index].notificationHistory):
-			tripDetails = os.linesep + "Trip Details:" 
-			ignoreKeys = ['index', 'description']
-			for key in self.config.trips[index].__dict__:
-				if(any(x in key for x in ignoreKeys)):
-					continue
-				tripDetails += os.linesep + "   " + str(key) + ": " + str(self.config.trips[index].__dict__[key]) 
-			self.state[index].notificationHistory = tripDetails
+			# If in here, this is the first notification, so add details to notification and see if history is enabled
+			self.state[index].notificationHistory = self.initializeHistory(index)
+			self.appendHistoryFile(index, self.now() + ": Monitoring started")
+			self.state[index].notificationHistory = self.now() + ": Monitoring started" + os.linesep + self.state[index].notificationHistory 
 
-
-		self.state[index].notificationHistory = self.now() + ": " + message + os.linesep + self.state[index].notificationHistory 
+		shortMessage = self.now() + ": " + message 
+		self.state[index].notificationHistory = shortMessage + os.linesep + self.state[index].notificationHistory 
+		self.appendHistoryFile(index, shortMessage)
 
 		if(self.config.notification.type == 'smtp'):
 			try:
@@ -152,7 +181,7 @@ class swatcher(object):
 			return False
 		except swa.scrapeDatesNotOpen as e:
 			if(self.state[trip.index].firstQuery):
-				self.sendNotification(trip.index, "For '" + trip.description + "' dates do not appear open.")
+				self.sendNotification(trip.index, "Dates do not appear open")
 				self.state[trip.index].firstQuery = False
 			return True
 		except swa.scrapeTimeout as e:
@@ -166,7 +195,7 @@ class swatcher(object):
 			self.state[trip.index].errorCount += 1
 			if(self.state[trip.index].errorCount == 10):
 				self.state[trip.index].blockQuery = True;
-				self.sendNotification(trip.index, "For '" + trip.description + "' ceasing queries due to frequent errors")
+				self.sendNotification(trip.index, "Ceasing queries due to frequent errors")
 			return True
 			
 			# If here, successfully scraped, so reset errorCount
@@ -188,7 +217,7 @@ class swatcher(object):
 			if(lowestFare is None):
 				self.sendNotification(trip.index, "Fare that meets criteria is UNAVAILABLE")
 			else:
-				self.sendNotification(trip.index, "Initial fare $" + str(lowestFare))
+				self.sendNotification(trip.index, "Fare now $" + str(lowestFare))
 			self.state[trip.index].currentLowestFare = lowestFare
 			self.state[trip.index].firstQuery = False
 		elif(self.state[trip.index].currentLowestFare is None):
@@ -200,7 +229,7 @@ class swatcher(object):
 				self.sendNotification(trip.index, "Fare that meets criteria is UNAVAILABLE")
 				self.state[trip.index].currentLowestFare = None
 			elif(lowestFare != self.state[trip.index].currentLowestFare):
-				self.sendNotification(trip.index, "Lowest fares now $" + str(lowestFare))
+				self.sendNotification(trip.index, "Fare now $" + str(lowestFare))
 				self.state[trip.index].currentLowestFare = lowestFare
 					
 		return True	
