@@ -31,6 +31,9 @@ defaultOptions = {
 class scrapeValidation(Exception):
 	pass
 
+class scrapeDatePast(Exception):
+	pass
+
 class scrapeTimeout(Exception):
 	pass
 
@@ -59,9 +62,18 @@ def validateTripType(tripType):
 
 def validateDate(date):
 
-	pattern = re.compile("^20[0-9][0-9]-[0-1][0-9]-[0-3][0-9]$")
-	if(not pattern.match(date)):
-		raise scrapeValidation("validateDate: '" + date + "' not in the format YYYY-MM-DD")
+	try:
+		testDate = datetime.datetime.strptime(date, "%Y-%m-%d").date()
+	except Exception as ex:
+		raise scrapeValidation("validateDate: '" + date + "' not in the format YYYY-MM-DD or invalid")
+
+	today = datetime.datetime.now().date()
+
+		# The reason for having a <= comparison instead of just a < comparison is that it would 
+		# be too hard validating date and factoring in time of day, so this way swatcher figures
+		# if it is the date of flight, you don't need to scrape anymore
+	if(testDate <= today):
+		raise scrapeDatePast("validateDate: '" + date + "' invalid - scraping can only be done until day before flight")
 
 	return date
 

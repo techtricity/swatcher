@@ -184,6 +184,10 @@ class swatcher(object):
 				self.sendNotification(trip.index, "Dates do not appear open")
 				self.state[trip.index].firstQuery = False
 			return True
+		except swa.scrapeDatePast as e:
+			self.sendNotification(trip.index, "Stopping trip monitoring as date has (or is about to) pass")
+			self.state[trip.index].blockQuery = True;
+			return True
 		except swa.scrapeTimeout as e:
 				# This could be a few things - internet or SWA website is down. 
 				# it could also mean my WebDriverWait conditional is incorrect/changed. Don't know
@@ -239,6 +243,17 @@ class swatcher(object):
 		for trip in self.config.trips:
 			if(not self.processTrip(trip, driver)):
 				return False
+
+		allBlocked = True
+		for state in self.state:
+			if(not state.blockQuery):
+				allBlocked = False
+				break
+
+		if(allBlocked):
+			print(self.now() + ": Stopping swatcher as there are no remaining trips to monitor")
+			return False
+
 		return True	
 
 	def main(self):
