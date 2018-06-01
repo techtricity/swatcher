@@ -1,7 +1,7 @@
 import ConfigParser
 import re
 
-class configurationSmtp(object):
+class configurationNotificationSmtp(object):
 
 	def __init__(self, cp):
 
@@ -36,7 +36,7 @@ class configurationSmtp(object):
 			else:
 				raise Exception("Configuration for SMTP has username specified, but not password")
 
-class configurationTwilio(object):
+class configurationNotificationTwilio(object):
 
 	def __init__(self, cp):
 		
@@ -61,6 +61,12 @@ class configurationTwilio(object):
 			self.recipient = cp.get('twilio', 'recipient')
 		else:
 			raise Exception("Configuration for Twilio missing required 'recipient' option")
+
+class configurationNotificationNone(object):
+
+	def __init__(self, cp):
+		
+		self.type = 'none'
 
 
 class configurationBrowserChrome(object):
@@ -171,9 +177,11 @@ class configuration(object):
 			raise Exception("Unspecified notificationMethod")
 
 		if(self.notificationMethod == 'smtp'):
-			self.notification = configurationSmtp(cp)
+			self.notification = configurationNotificationSmtp(cp)
 		elif(self.notificationMethod == 'twilio'):
-			self.notification = configurationTwilio(cp)
+			self.notification = configurationNotificationTwilio(cp)
+		elif(self.notificationMethod == 'none'):
+			self.notification = configurationNotificationNone(cp)
 		else:
 			raise Exception("Unrecognized notificationMethod '" + self.notificationMethod + "'")
 		
