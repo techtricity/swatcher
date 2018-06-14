@@ -19,6 +19,7 @@ class state(object):
 		self.blockQuery = False
 		self.firstQuery = True
 		self.notificationHistory = ''
+		self.dailyAlertDate = datetime.datetime.now().date()
 
 
 class swatcher(object):
@@ -235,6 +236,14 @@ class swatcher(object):
 			elif(lowestFare != self.state[trip.index].currentLowestFare):
 				self.sendNotification(trip.index, "Fare now $" + str(lowestFare))
 				self.state[trip.index].currentLowestFare = lowestFare
+
+		if(self.config.dailyAlerts):
+			if(self.state[trip.index].dailyAlertDate != datetime.datetime.now().date()):
+				if(lowestFare is None):
+					self.sendNotification(trip.index, "Daily alert fare that meets criteria is UNAVAILABLE")
+				else:
+					self.sendNotification(trip.index, "Daily alert fare is $" + str(lowestFare))
+				self.state[trip.index].dailyAlertDate = datetime.datetime.now().date()
 					
 		return True	
 
@@ -268,6 +277,8 @@ class swatcher(object):
 			quit()
 
 		self.state = [state() for i in xrange(len(self.config.trips))]	
+
+			
 
 		if(self.config.browser.type == 'chrome'): # Or Chromium
 			options = selenium.webdriver.ChromeOptions()

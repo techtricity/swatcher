@@ -171,6 +171,11 @@ class configuration(object):
 		else:
 			self.debug = False
 
+		if(cp.has_option('global', 'dailyAlerts')):
+			self.dailyAlerts = cp.getboolean('global', 'dailyAlerts')
+		else:
+			self.dailyAlerts = False
+
 		if(cp.has_option('global', 'notificationMethod')):
 			self.notificationMethod = cp.get('global', 'notificationMethod')
 		else:
